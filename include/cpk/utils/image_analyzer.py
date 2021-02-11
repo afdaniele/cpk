@@ -14,16 +14,7 @@ EXTRA_INFO_SEPARATOR = '-' * SEPARATORS_LENGTH_HALF
 class ImageAnalyzer:
 
     @staticmethod
-    def about():
-        print()
-        print('=' * 30)
-        print(tc.colored('Docker Build Analyzer', 'white', 'on_blue'))
-        print('Maintainer: Andrea F. Daniele (afdaniele@ttic.edu)')
-        print('=' * 30)
-        print()
-
-    @staticmethod
-    def process(buildlog, historylog, codens=0, extra_info=None, nocolor=False):
+    def process(buildlog, historylog, extra_info=None, nocolor=False):
         lines = buildlog
 
         # return if the log is empty
@@ -48,7 +39,7 @@ class ImageAnalyzer:
 
         # check if the build process succeded
         if not final_layer_pattern.match(lines[-1]):
-            exit(codens + 2)
+            return False
         image_names = []
         for line in reversed(lines):
             match = final_layer_pattern.match(line)
@@ -56,9 +47,6 @@ class ImageAnalyzer:
                 image_names.append(match.group(1))
             else:
                 break
-
-        print()
-        ImageAnalyzer.about()
 
         # find "Step XY/TOT" lines
         steps_idx = [i for i in range(len(lines)) if step_pattern.match(lines[i])] + [len(lines)]
@@ -81,7 +69,7 @@ class ImageAnalyzer:
         for i, j in zip(steps_idx, steps_idx[1:]):
             indent_str = '|'
             layerid_str = 'Layer ID:'
-            size_str = 'Size:'
+            size_str = '   Size:'
             cur_step_lines = lines[i:j]
             open_layers = [
                 layer_pattern.match(line) for line in cur_step_lines if layer_pattern.match(line)
@@ -122,11 +110,11 @@ class ImageAnalyzer:
             layerid_str = tc.colored(layerid_str, fg_color, 'on_' + bg_color)
             # print info about the current layer
             print(
-                '%s %s\n%sStep: %s/%s\n%sCached: %s\n%sCommand: \n%s\t%s\n%s%s %s' % (
+                '%s %s\n%s   Step: %s/%s\n%s Cached: %s\n%sCommand: %s\n%s%s %s' % (
                     layerid_str, layerid,
                     indent_str, stepno, steptot,
                     indent_str, step_cache,
-                    indent_str, indent_str, stepcmd,
+                    indent_str, stepcmd,
                     indent_str, size_str, layersize
                 )
             )
@@ -149,9 +137,12 @@ class ImageAnalyzer:
             'Legend: %s %s\t%s %s\t%s < %s\t%s < %s\t%s > %s\t' % (
                 tc.colored(' ' * 2, 'white', 'on_white'), 'EMPTY LAYER',
                 tc.colored(' ' * 2, 'white', 'on_blue'), 'BASE LAYER',
-                tc.colored(' ' * 2, 'white', 'on_green'), human_size(LAYER_SIZE_YELLOW, precision=1),
-                tc.colored(' ' * 2, 'white', 'on_yellow'), human_size(LAYER_SIZE_RED, precision=1),
-                tc.colored(' ' * 2, 'white', 'on_red'), human_size(LAYER_SIZE_RED, precision=1)
+                tc.colored(' ' * 2, 'white', 'on_green'),
+                human_size(LAYER_SIZE_YELLOW, precision=1),
+                tc.colored(' ' * 2, 'white', 'on_yellow'),
+                human_size(LAYER_SIZE_RED, precision=1),
+                tc.colored(' ' * 2, 'white', 'on_red'),
+                human_size(LAYER_SIZE_RED, precision=1)
             )
         )
         print()

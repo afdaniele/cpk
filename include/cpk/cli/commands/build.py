@@ -2,6 +2,7 @@ import argparse
 import copy
 import json
 import os
+import sys
 import time
 import datetime
 from shutil import which
@@ -20,7 +21,7 @@ from cpk.utils.docker import get_client, get_endpoint_ncpus, DOCKER_INFO, \
 from cpk.utils.misc import sanitize_hostname, cpk_label, human_size, human_time
 from ...constants import BUILD_COMPATIBILITY_MAP, CANONICAL_ARCH, DEFAULT_PIP_INDEX_URL
 from ...exceptions import CPKProjectBuildException
-from ...utils.image_analyzer import EXTRA_INFO_SEPARATOR, ImageAnalyzer
+from ...utils.image_analyzer import EXTRA_INFO_SEPARATOR, ImageAnalyzer, SEPARATORS_LENGTH
 
 
 class CLIBuildCommand(AbstractCLICommand):
@@ -331,17 +332,17 @@ class CLIBuildCommand(AbstractCLICommand):
 
         # build image
         buildlog = []
+        print("=" * SEPARATORS_LENGTH)
         try:
             for line in docker.api.build(**buildargs, decode=True):
                 line = _build_line(line)
                 if not line:
                     continue
                 try:
-                    cpklogger.write(line)
+                    sys.stdout.write(line)
                     buildlog.append(line)
                 except UnicodeEncodeError:
                     pass
-
         except APIError as e:
             cpklogger.error(f"An error occurred while building the project image:\n{str(e)}")
             return False
@@ -387,8 +388,11 @@ class CLIBuildCommand(AbstractCLICommand):
         # compile extra info
         extra_info = "\n".join(extra_info)
         # run docker image analysis
+        print("=" * SEPARATORS_LENGTH + "\n")
+        cpklogger.info("Analyzing the image...")
+        print()
         _, _, final_image_size = ImageAnalyzer.process(
-            buildlog, historylog, codens=100, extra_info=extra_info
+            buildlog, historylog, extra_info=extra_info
         )
         # pull image (if the destination is different from the builder machine)
         if parsed.destination and parsed.machine != parsed.destination:

@@ -69,16 +69,20 @@ if platform.system() != "Windows":
     StreamHandler.emit = emit2
 
 
-def plain(text: str, handler):
-    for line in text.split('\n'):
-        tab = " " * 3 + "| "
-        handler(tab + line)
-    if handler == sys.stdout.write:
-        sys.stdout.flush()
+def plain(text: str = "", end: str = ""):
+    if end == "" and text.rstrip(" ").endswith("\n"):
+        text = text.rstrip("\n")
+        end = "\n"
+    text = "\n".join([
+        (" " * 3 + "| " + line)
+        for line in text.split('\n')
+    ]) + end
+    sys.stdout.write(text)
+    sys.stdout.flush()
 
 
-setattr(cpklogger, "print", partial(plain, handler=print))
-setattr(cpklogger, "write", partial(plain, handler=sys.stdout.write))
+setattr(cpklogger, "print", partial(plain, end="\n"))
+setattr(cpklogger, "write", plain)
 
 __all__ = [
     "cpklogger"
