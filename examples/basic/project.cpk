@@ -1,0 +1,8 @@
+{
+    "schema": "1.0",
+    "template": null,
+    "name": "basic",
+    "description": "A basic project",
+    "version": "0.0.0",
+    "owner": "cpk-examples"
+}

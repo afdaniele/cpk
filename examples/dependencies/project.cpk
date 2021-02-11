@@ -1,0 +1,8 @@
+{
+    "schema": "1.0",
+    "template": null,
+    "name": "basic-dependencies",
+    "description": "A basic project with APT and Python3 dependencies support",
+    "version": "0.0.0",
+    "owner": "cpk-examples"
+}

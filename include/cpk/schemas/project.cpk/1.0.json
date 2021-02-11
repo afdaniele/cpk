@@ -1,0 +1,42 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "cpk-template-schema-1-0",
+    "title": "",
+    "type": "object",
+    "properties": {
+        "schema": {
+            "type": "string",
+            "const": "1.0"
+        },
+        "name": {
+            "type": "string",
+            "minLength": 1
+        },
+        "description": {
+            "type": "string",
+            "minLength": 1
+        }
+    },
+    "patternProperties": {
+        "template": {
+            "type": ["null", "object"]
+        },
+        "version": {
+            "type": "string",
+            "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)$"
+        },
+        "owner": {
+            "type": "string",
+            "minLength": 1
+        },
+        "registry": {
+            "type": "string",
+            "format": "hostname"
+        },
+        "tag": {
+            "type": "string",
+            "minLength": 1
+        }
+    },
+    "additionalProperties": false
+}

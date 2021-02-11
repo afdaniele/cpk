@@ -1,0 +1,8 @@
+{
+    "schema": "1.0",
+    "template": null,
+    "name": "basic-packages",
+    "description": "A basic project with support for custom Python packages",
+    "version": "0.0.0",
+    "owner": "cpk-examples"
+}
