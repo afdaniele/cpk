@@ -8,9 +8,9 @@ ARG MAINTAINER
 # ==================================================>
 # ==> Do not change the code below this line
 ARG BASE_REGISTRY=docker.io
-ARG BASE_ORGANIZATION=cpk
-ARG BASE_REPOSITORY=ubuntu
-ARG BASE_TAG=focal
+ARG BASE_ORGANIZATION=cpk-examples
+ARG BASE_REPOSITORY=level1
+ARG BASE_TAG=latest
 
 # define base image
 FROM ${BASE_REGISTRY}/${BASE_ORGANIZATION}/${BASE_REPOSITORY}:${BASE_TAG}-${ARCH} as BASE
@@ -45,9 +45,6 @@ ENV \
     CPK_PROJECT_LAUNCHERS_PATH="${PROJECT_LAUNCHERS_PATH}" \
     CPK_LAUNCHER="${LAUNCHER}"
 
-# copy the source code
-COPY ./packages "${CPK_PROJECT_PATH}/packages"
-
 # install launcher scripts
 COPY ./launchers/. "${PROJECT_LAUNCHERS_PATH}/"
 COPY ./launchers/default.sh "${PROJECT_LAUNCHERS_PATH}/"
@@ -56,7 +53,7 @@ RUN cpk-install-launchers "${PROJECT_LAUNCHERS_PATH}"
 # define default command
 CMD ["bash", "-c", "launcher-${CPK_LAUNCHER}"]
 
-# store module metadata
+# store project metadata
 LABEL \
     cpk.label.current="${ORGANIZATION}.${NAME}" \
     cpk.label.project.${ORGANIZATION}.${NAME}.description="${DESCRIPTION}" \

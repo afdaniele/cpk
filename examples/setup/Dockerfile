@@ -45,8 +45,8 @@ ENV \
     CPK_PROJECT_LAUNCHERS_PATH="${PROJECT_LAUNCHERS_PATH}" \
     CPK_LAUNCHER="${LAUNCHER}"
 
-# copy the source code
-COPY ./packages "${CPK_PROJECT_PATH}/packages"
+# copy project root
+COPY ./* "${PROJECT_PATH}/"
 
 # install launcher scripts
 COPY ./launchers/. "${PROJECT_LAUNCHERS_PATH}/"

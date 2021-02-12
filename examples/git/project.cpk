@@ -3,6 +3,7 @@
     "template": null,
     "name": "basic-git",
     "description": "A basic project with git support",
+    "organization": "cpk-examples",
     "version": "0.0.0",
-    "owner": "cpk-examples"
+    "maintainer": "Andrea F. Daniele"
 }

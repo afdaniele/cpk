@@ -1,7 +1,7 @@
 {
     "schema": "1.0",
     "template": null,
-    "name": "basic",
+    "name": "level4",
     "description": "A basic project",
     "organization": "cpk-examples",
     "version": "0.0.0",

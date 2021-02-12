@@ -1,22 +1,33 @@
 # parameters
+ARG ARCH
 ARG NAME
+ARG ORGANIZATION
 ARG DESCRIPTION
 ARG MAINTAINER
-ARG ARCH
 
 # ==================================================>
 # ==> Do not change the code below this line
-ARG LAUNCHER=default
+ARG BASE_REGISTRY=docker.io
+ARG BASE_ORGANIZATION=cpk
+ARG BASE_REPOSITORY=ubuntu
+ARG BASE_TAG=focal
 
 # define base image
-FROM cpk/ubuntu:focal-${ARCH} as BASE
+FROM ${BASE_REGISTRY}/${BASE_ORGANIZATION}/${BASE_REPOSITORY}:${BASE_TAG}-${ARCH} as BASE
 
 # recall all arguments
-ARG ARCH
+# - current project
 ARG NAME
+ARG ORGANIZATION
 ARG DESCRIPTION
 ARG MAINTAINER
-ARG LAUNCHER
+# - base project
+ARG BASE_REGISTRY
+ARG BASE_ORGANIZATION
+ARG BASE_REPOSITORY
+ARG BASE_TAG
+# - defaults
+ARG LAUNCHER=default
 
 # define/create project paths
 ARG PROJECT_PATH="${CPK_SOURCE_DIR}/${NAME}"
@@ -48,17 +59,17 @@ COPY ./launchers/default.sh "${PROJECT_LAUNCHERS_PATH}/"
 RUN cpk-install-launchers "${PROJECT_LAUNCHERS_PATH}"
 
 # define default command
-CMD ["bash", "-c", "cpk-launcher-${CPK_LAUNCHER}"]
+CMD ["bash", "-c", "launcher-${CPK_LAUNCHER}"]
 
 # store module metadata
-#LABEL \
-#    cpk.label.project.name="${NAME}" \
-#    cpk.label.project.description="${DESCRIPTION}" \
-#    cpk.label.architecture="${ARCH}" \
-#    cpk.label.code.location="${CPK_PROJECT_PATH}" \
-#    cpk.label.code.version.distro="${DISTRO}" \
-#    cpk.label.base.image="${BASE_IMAGE}" \
-#    cpk.label.base.tag="${BASE_TAG}" \
-#    cpk.label.maintainer="${MAINTAINER}"
+LABEL \
+    cpk.label.current="${ORGANIZATION}.${NAME}" \
+    cpk.label.project.${ORGANIZATION}.${NAME}.description="${DESCRIPTION}" \
+    cpk.label.project.${ORGANIZATION}.${NAME}.code.location="${PROJECT_PATH}" \
+    cpk.label.project.${ORGANIZATION}.${NAME}.base.registry="${BASE_REGISTRY}" \
+    cpk.label.project.${ORGANIZATION}.${NAME}.base.organization="${BASE_ORGANIZATION}" \
+    cpk.label.project.${ORGANIZATION}.${NAME}.base.project="${BASE_REPOSITORY}" \
+    cpk.label.project.${ORGANIZATION}.${NAME}.base.tag="${BASE_TAG}" \
+    cpk.label.project.${ORGANIZATION}.${NAME}.maintainer="${MAINTAINER}"
 # <== Do not change the code above this line
 # <==================================================
