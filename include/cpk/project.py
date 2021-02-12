@@ -2,7 +2,8 @@ import dataclasses
 import os
 import re
 import json
-from typing import Any, Dict
+from pathlib import Path
+from typing import Any, Dict, Union, List
 
 import jsonschema
 import requests
@@ -17,7 +18,7 @@ from .exceptions import NotACPKProjectException, InvalidCPKProjectFile, \
 from .schemas import get_project_schema
 from .types import CPKProjectInfo, GitRepository, CPKTemplateInfo
 from .utils.git import get_repo_info
-from .utils.misc import assert_canonical_arch, parse_configurations
+from .utils.misc import assert_canonical_arch, parse_configurations, cpk_label
 from .utils import docker
 
 
@@ -49,16 +50,24 @@ class CPKProject:
         self._features = CPKProjectFeatures.from_project(self)
 
     @property
-    def path(self):
+    def path(self) -> str:
         return self._path
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._from_adapters("name")
 
     @property
-    def owner(self):
-        return self._from_adapters("owner")
+    def organization(self) -> str:
+        return self._from_adapters("organization")
+
+    @property
+    def description(self) -> Union[None, str]:
+        return self._from_adapters("description")
+
+    @property
+    def maintainer(self) -> Union[None, str]:
+        return self._from_adapters("maintainer")
 
     @property
     def version(self) -> ProjectVersion:
@@ -73,7 +82,7 @@ class CPKProject:
         return self._repo
 
     @property
-    def url(self):
+    def url(self) -> Union[None, str]:
         return self._from_adapters("url")
 
     @property
@@ -84,30 +93,30 @@ class CPKProject:
     def features(self) -> 'CPKProjectFeatures':
         return self._features
 
-    def resource(self, resource: str):
+    def resource(self, resource: str) -> str:
         return os.path.join(self.path, resource.lstrip('/'))
 
-    def is_release(self):
+    def is_release(self) -> bool:
         if not self.is_clean():
             return False
         if self.version.head is None:
             return False
         return True
 
-    def is_clean(self):
+    def is_clean(self) -> bool:
         return self._repo.index.clean
 
-    def is_dirty(self):
+    def is_dirty(self) -> bool:
         return not self.is_clean()
 
-    def is_detached(self):
+    def is_detached(self) -> bool:
         return self._repo.detached
 
     def image(self, arch: str, docs: bool = False) -> str:
         assert_canonical_arch(arch)
         docs = "-docs" if docs else ""
         version = re.sub(r"[^\w\-.]", "-", self.version.tag)
-        return f"{self.owner}/{self.name}:{version}{docs}-{arch}"
+        return f"{self.organization}/{self.name}:{version}{docs}-{arch}"
 
     def image_release(self, arch: str, docs: bool = False) -> str:
         if not self.is_release():
@@ -115,7 +124,7 @@ class CPKProject:
         assert_canonical_arch(arch)
         docs = "-docs" if docs else ""
         version = re.sub(r"[^\w\-.]", "-", self.version.head)
-        return f"{self.owner}/{self.name}:{version}{docs}-{arch}"
+        return f"{self.organization}/{self.name}:{version}{docs}-{arch}"
 
     def configurations(self) -> dict:
         configurations = {}
@@ -130,6 +139,47 @@ class CPKProject:
         if name not in configurations:
             raise KeyError(f"Configuration with name '{name}' not found.")
         return configurations[name]
+
+    def label(self, key: Union[List[str], str]) -> str:
+        if isinstance(key, (list, tuple)):
+            key = ".".join(key)
+        return cpk_label(f"project.{self.organization}.{self.name}.{key}")
+
+    def build_labels(self) -> Dict[str, str]:
+        return {
+            self.label("code.vcs"): "git" if self.repository.present else "ND",
+            self.label("code.version.tag"): self.version.tag or "ND",
+            self.label("code.version.head"): self.version.head or "ND",
+            self.label("code.version.closest"): self.version.closest or "ND",
+            self.label("code.version.sha"): self.version.sha if self.version.sha and self.is_clean() else "ND",
+            self.label("code.vcs.repository"): self.repository.name or "ND",
+            self.label("code.vcs.branch"): self.repository.branch or "ND",
+            self.label("code.vcs.url"): self.repository.origin.url_https or "ND",
+            self.label("template.name"): self.template.name,
+            self.label("template.version"): self.template.version,
+            self.label("template.url"): self.template.url or "ND",
+            **self._launchers_labels(),
+            **self._configurations_labels()
+        }
+
+    def launchers(self) -> List[str]:
+        launchers_dir = os.path.join(self.path, "launchers")
+        files = (
+            [
+                os.path.join(launchers_dir, f)
+                for f in os.listdir(launchers_dir)
+                if os.path.isfile(os.path.join(launchers_dir, f))
+            ]
+            if os.path.isdir(launchers_dir)
+            else []
+        )
+
+        def _has_shebang(f):
+            with open(f, "rt") as fin:
+                return fin.readline().startswith("#!")
+
+        launchers = [Path(f).stem for f in files if os.access(f, os.X_OK) or _has_shebang(f)]
+        return launchers
 
     def image_metadata(self, endpoint, arch: str):
         client = docker.get_client(endpoint)
@@ -151,7 +201,7 @@ class CPKProject:
 
     def remote_image_metadata(self, arch: str):
         assert_canonical_arch(arch)
-        image = f"{self.owner}/{self.name}"
+        image = f"{self.organization}/{self.name}"
         tag = f"{self.version.tag}-{arch}"
         return self.inspect_remote_image(image, tag)
 
@@ -185,6 +235,17 @@ class CPKProject:
                     msg = f"CPK {owner} requires the following directory, but this was not found."
                     raise CPKMissingResourceException(directory, explanation=msg)
 
+    def _launchers_labels(self) -> Dict[str, str]:
+        return {self.label("code.launchers") : ",".join(self.launchers())}
+
+    def _configurations_labels(self) -> Dict[str, str]:
+        labels = {}
+        # add configuration labels
+        for cfg_name, cfg_data in self.configurations().items():
+            labels[self.label(f"configuration.{cfg_name}")] = json.dumps(cfg_data)
+        # ---
+        return labels
+
     @staticmethod
     def _get_info(path: str) -> CPKProjectInfo:
         metafile = os.path.join(path, "project.cpk")
@@ -217,8 +278,9 @@ class CPKProject:
         # metadata is valid
         return CPKProjectInfo(
             name=data["name"],
-            description=data["description"],
-            owner=data.get("owner", None),
+            organization=data.get("organization", None),
+            description=data.get("description", None),
+            maintainer=data.get("maintainer", None),
             template=template,
             version=data.get("version", None),
             registry=data.get("registry", None),

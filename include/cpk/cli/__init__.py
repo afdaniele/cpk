@@ -1,8 +1,10 @@
 import argparse
+import logging
 import os
 from abc import abstractmethod, ABC
 from typing import Union
 
+from cpk.cli.logger import cpklogger
 from cpk.constants import CANONICAL_ARCH
 
 
@@ -65,6 +67,9 @@ class AbstractCLICommand(ABC):
         parsed = parser.parse_args(args)
         # sanitize workdir
         parsed.workdir = os.path.abspath(parsed.workdir)
+        # enable debug
+        if parsed.debug:
+            cpklogger.setLevel(logging.DEBUG)
         # ---
         return parsed
 

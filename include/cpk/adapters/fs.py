@@ -1,5 +1,4 @@
 import os
-from typing import Union
 
 from .generic import GenericAdapter
 
@@ -12,5 +11,5 @@ class FileSystemAdapter(GenericAdapter):
         self.enabled = True
 
     @property
-    def name(self) -> Union[None, str]:
+    def name(self) -> str:
         return os.path.basename(self._path).lower()

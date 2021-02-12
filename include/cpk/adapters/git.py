@@ -1,4 +1,3 @@
-import getpass
 from typing import Union
 
 from .generic import GenericAdapter, ProjectVersion
@@ -14,12 +13,12 @@ class GitRepositoryAdapter(GenericAdapter):
         self.enabled = self._repo.present
 
     @property
-    def id(self) -> str:
-        return self._id
+    def name(self) -> str:
+        return self._repo.name
 
     @property
-    def name(self) -> Union[None, str]:
-        return None
+    def organization(self) -> str:
+        return self._repo.origin.organization
 
     @property
     def version(self) -> ProjectVersion:
@@ -34,5 +33,6 @@ class GitRepositoryAdapter(GenericAdapter):
         )
 
     @property
-    def owner(self) -> Union[None, str]:
-        return getpass.getuser()
+    def maintainer(self) -> Union[None, str]:
+        # TODO: compile maintainer in the form "First Last (Email)" from git
+        return None

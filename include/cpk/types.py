@@ -16,8 +16,9 @@ from typing import Union, List, Dict
 @dataclasses.dataclass
 class CPKProjectInfo:
     name: str
-    description: str
-    owner: str
+    organization: str
+    description: Union[None, str]
+    maintainer: str
     template: 'CPKTemplateInfo'
     version: Union[None, str]
     registry: Union[None, str]
@@ -34,6 +35,7 @@ class GitRepositoryVersion:
 class GitRepositoryOrigin:
     url: Union[None, str]
     url_https: Union[None, str]
+    organization: Union[None, str]
 
 
 @dataclasses.dataclass
@@ -68,7 +70,8 @@ class GitRepository:
             ),
             origin=GitRepositoryOrigin(
                 url=None,
-                url_https=None
+                url_https=None,
+                organization=None
             ),
             index=GitRepositoryIndex(
                 clean=True,

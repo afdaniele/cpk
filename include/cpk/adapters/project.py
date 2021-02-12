@@ -12,8 +12,16 @@ class ProjectFileAdapter(GenericAdapter):
         self.enabled = True
 
     @property
-    def name(self) -> Union[None, str]:
+    def name(self) -> str:
         return self._info.name
+
+    @property
+    def organization(self) -> str:
+        return self._info.organization or super(ProjectFileAdapter, self).organization
+
+    @property
+    def description(self) -> Union[None, str]:
+        return self._info.description
 
     @property
     def version(self) -> ProjectVersion:
@@ -25,5 +33,5 @@ class ProjectFileAdapter(GenericAdapter):
         )
 
     @property
-    def owner(self) -> Union[None, str]:
-        return self._info.owner or super(ProjectFileAdapter, self).owner
+    def maintainer(self) -> Union[None, str]:
+        return self._info.maintainer or super(ProjectFileAdapter, self).maintainer

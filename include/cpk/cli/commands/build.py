@@ -130,31 +130,6 @@ class CLIBuildCommand(AbstractCLICommand):
                 "before continuing. Aborting."
             )
             return False
-        # sanitize hostname
-        if parsed.machine is not None:
-            parsed.machine = sanitize_hostname(parsed.machine)
-        # define build-args
-        buildargs = {"buildargs": {}, "labels": {}}
-        # add code labels
-        project_head_version = project.version.head or "ND"
-        project_closest_version = project.version.closest or "ND"
-        buildargs["labels"][cpk_label("code.tag")] = project.version.tag
-        buildargs["labels"][cpk_label("code.version.head")] = project_head_version
-        buildargs["labels"][cpk_label("code.version.closest")] = project_closest_version
-        # git-based project
-        if "git" in project.adapters:
-            buildargs["labels"][cpk_label("code.vcs")] = "git"
-            buildargs["labels"][cpk_label("code.repository")] = project.repository.name
-            buildargs["labels"][cpk_label("code.branch")] = project.repository.branch
-            buildargs["labels"][cpk_label("code.url")] = project.repository.origin.url
-        else:
-            buildargs["labels"][cpk_label("code.vcs")] = "ND"
-            buildargs["labels"][cpk_label("code.repository")] = "ND"
-            buildargs["labels"][cpk_label("code.branch")] = "ND"
-            buildargs["labels"][cpk_label("code.url")] = "ND"
-        # add template labels
-        buildargs["labels"][cpk_label("template.name")] = project.template.name
-        buildargs["labels"][cpk_label("template.version")] = project.template.version
         # check if the index is clean
         if project.is_dirty():
             cpklogger.warning("Your index is not clean (some files are not committed).")
@@ -162,10 +137,21 @@ class CLIBuildCommand(AbstractCLICommand):
             if not parsed.force:
                 return False
             cpklogger.warning("Forced!")
-        # add configuration labels
-        for cfg_name, cfg_data in project.configurations().items():
-            label = cpk_label(f"image.configuration.{cfg_name}")
-            buildargs["labels"][label] = json.dumps(cfg_data)
+        # sanitize hostname
+        if parsed.machine is not None:
+            parsed.machine = sanitize_hostname(parsed.machine)
+        # define build-args
+        buildargs = {"buildargs": {}, "labels": {}}
+        # add project build args
+        buildargs["buildargs"].update({
+            "ARCH": parsed.arch,
+            "NAME": project.name,
+            "DESCRIPTION": project.description,
+            "ORGANIZATION": project.organization,
+            "MAINTAINER": project.maintainer
+        })
+        # add project labels
+        buildargs["labels"].update(project.build_labels())
         # create docker client
         docker = get_client(parsed.machine)
         # build-arg NCPUS
@@ -185,25 +171,6 @@ class CLIBuildCommand(AbstractCLICommand):
             cpklogger.info(f"Target architecture automatically set to {parsed.arch}.")
         # create defaults
         image = project.image(parsed.arch)
-        # search for launchers
-        launchers_dir = os.path.join(parsed.workdir, "launchers")
-        files = (
-            [
-                os.path.join(launchers_dir, f)
-                for f in os.listdir(launchers_dir)
-                if os.path.isfile(os.path.join(launchers_dir, f))
-            ]
-            if os.path.isdir(launchers_dir)
-            else []
-        )
-
-        def _has_shebang(f):
-            with open(f, "rt") as fin:
-                return fin.readline().startswith("#!")
-
-        launchers = [Path(f).stem for f in files if os.access(f, os.X_OK) or _has_shebang(f)]
-        # add launchers to image labels
-        buildargs["labels"][cpk_label("code.launchers")] = ",".join(sorted(launchers))
         # print info about multiarch
         msg = "Building an image for {} on {}.".format(parsed.arch, epoint["Architecture"])
         cpklogger.info(msg)
@@ -237,18 +204,6 @@ class CLIBuildCommand(AbstractCLICommand):
         # development base images
         if parsed.base_tag is not None:
             buildargs["buildargs"]["DISTRO"] = parsed.base_tag
-
-        # custom Docker registry
-        docker_registry = os.environ.get("DOCKER_REGISTRY", DEFAULT_REGISTRY)
-        if docker_registry != DEFAULT_REGISTRY:
-            cpklogger.warning(f"Using custom DOCKER_REGISTRY='{docker_registry}'.")
-            buildargs["buildargs"]["DOCKER_REGISTRY"] = docker_registry
-
-        # custom Pip registry
-        pip_index_url = os.environ.get("PIP_INDEX_URL", DEFAULT_PIP_INDEX_URL)
-        if pip_index_url != DEFAULT_PIP_INDEX_URL:
-            cpklogger.warning(f"Using custom PIP_INDEX_URL='{pip_index_url}'.")
-            buildargs["buildargs"]["PIP_INDEX_URL"] = pip_index_url
 
         # custom build arguments
         for key, value in parsed.build_arg:
@@ -287,10 +242,11 @@ class CLIBuildCommand(AbstractCLICommand):
         build_time = "ND"
         if parsed.stamp:
             if project.is_dirty():
-                cpklogger.warning(
+                cpklogger.error(
                     "Your git index is not clean. You can't stamp an image built "
-                    "from a dirty index. The image will not be stamped."
+                    "from a dirty index."
                 )
+                return False
             else:
                 # project is clean
                 build_time = None
@@ -298,8 +254,8 @@ class CLIBuildCommand(AbstractCLICommand):
                 # get remote image metadata
                 try:
                     labels = project.image_labels(parsed.machine, parsed.arch)
-                    time_label = cpk_label("time")
-                    sha_label = cpk_label("code.sha")
+                    time_label = project.label("time")
+                    sha_label = project.label("code.sha")
                     if time_label in labels and sha_label in labels:
                         remote_time = labels[time_label]
                         remote_sha = labels[sha_label]
@@ -313,15 +269,12 @@ class CLIBuildCommand(AbstractCLICommand):
         build_time = build_time or datetime.datetime.utcnow().isoformat()
         cpklogger.debug(f"Image timestamp: {build_time}")
         # add timestamp label
-        buildargs["labels"][cpk_label("time")] = build_time
-        # add code SHA label (CI only)
-        code_sha = project.version.sha if project.is_clean() else "ND"
-        buildargs["labels"][cpk_label("code.sha")] = code_sha
+        buildargs["labels"][project.label("time")] = build_time
 
         # collect build args
         buildargs.update(
             {
-                "path": parsed.workdir,
+                "path": project.path,
                 "rm": True,
                 "pull": parsed.pull,
                 "nocache": parsed.no_cache,
@@ -372,6 +325,7 @@ class CLIBuildCommand(AbstractCLICommand):
         # round up extra info
         extra_info = []
         # - launchers info
+        launchers = project.launchers()
         if len(launchers) > 0:
             extra_info.append("Image launchers:")
             for launcher in sorted(launchers):
@@ -420,10 +374,6 @@ class CLIBuildCommand(AbstractCLICommand):
                     "We had some issues cleaning up the image on '{:s}'".format(parsed.machine)
                     + ". Just a heads up!"
                 )
-
-    @staticmethod
-    def complete(shell, word, line):
-        return []
 
 
 def _transfer_image(origin, destination, image, image_size):

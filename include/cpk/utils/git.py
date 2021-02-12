@@ -58,7 +58,8 @@ def get_repo_info(path: str) -> Union[None, GitRepository]:
         ),
         origin=GitRepositoryOrigin(
             url=origin_url,
-            url_https=remote_url_to_https(origin_url)
+            url_https=remote_url_to_https(origin_url),
+            organization=remote_url_to_organization(origin_url)
         ),
         index=GitRepositoryIndex(
             clean=clean,
@@ -74,3 +75,12 @@ def remote_url_to_https(remote_url: str) -> str:
     if res:
         return f"https://{res.group(1)}/{res.group(2)}/{res.group(3)}"
     return remote_url
+
+
+def remote_url_to_organization(remote_url: str) -> Union[None, str]:
+    remote_url = remote_url_to_https(remote_url)
+    https_pattern = "https://[^/]+/([^/]+)/.+"
+    res = re.search(https_pattern, remote_url, re.IGNORECASE)
+    if res:
+        return res.group(1)
+    return None

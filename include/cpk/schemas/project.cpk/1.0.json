@@ -11,13 +11,17 @@
         "name": {
             "type": "string",
             "minLength": 1
+        }
+    },
+    "patternProperties": {
+        "organization": {
+            "type": "string",
+            "minLength": 1
         },
         "description": {
             "type": "string",
             "minLength": 1
-        }
-    },
-    "patternProperties": {
+        },
         "template": {
             "type": ["null", "object"]
         },
@@ -25,7 +29,7 @@
             "type": "string",
             "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)$"
         },
-        "owner": {
+        "maintainer": {
             "type": "string",
             "minLength": 1
         },

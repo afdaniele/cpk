@@ -22,7 +22,15 @@ class GenericAdapter:
         return self._id
 
     @property
-    def name(self) -> Union[None, str]:
+    def name(self) -> str:
+        return "project"
+
+    @property
+    def organization(self) -> str:
+        return getpass.getuser()
+
+    @property
+    def description(self) -> Union[None, str]:
         return None
 
     @property
@@ -35,12 +43,12 @@ class GenericAdapter:
         )
 
     @property
-    def owner(self) -> Union[None, str]:
+    def maintainer(self) -> str:
         return getpass.getuser()
 
     @property
-    def url(self):
+    def url(self) -> Union[None, str]:
         return None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._id
