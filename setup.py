@@ -26,8 +26,19 @@ lib_version = get_version(filename='include/cpk/__init__.py')
 setup(
     name='cpk',
     packages=[
-        'cpk'
+        'cpk',
+        'cpk.adapters',
+        'cpk.cli',
+        'cpk.cli.commands',
+        'cpk.schemas',
+        'cpk.utils'
     ],
+    package_dir={
+        'cpk': 'include/cpk'
+    },
+    package_data={
+        "cpk": ["schemas/*/*.json"],
+    },
     version=lib_version,
     license='MIT',
     description='Toolkit that standardize the way code in a project is structured and packaged '
