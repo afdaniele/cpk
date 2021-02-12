@@ -28,7 +28,7 @@ cpk build
 A cpk project can be run using the command,
 
 ```shell
-cpk build
+cpk run
 ```
 
 
