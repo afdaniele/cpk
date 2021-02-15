@@ -81,6 +81,86 @@ class GitRepository:
         )
 
 
+@dataclasses.dataclass
+class DockerImageRegistry:
+    hostname: str = "docker.io"
+    port: int = 5000
+
+    def is_default(self) -> bool:
+        defaults = DockerImageRegistry()
+        # add - registry
+        if self.hostname != defaults.hostname or self.port != defaults.port:
+            return False
+        return True
+
+    def compile(self, allow_defaults: bool = False) -> Union[None, str]:
+        defaults = DockerImageRegistry()
+        name = None if not allow_defaults else f"{defaults.hostname}"
+        # add - registry
+        if self.hostname != defaults.hostname:
+            if self.port != defaults.port:
+                name += f"{self.hostname}:{self.port}"
+            else:
+                name += f"{self.hostname}"
+        # ---
+        return name
+
+
+@dataclasses.dataclass
+class DockerImageName:
+    """
+    The official Docker image naming convention is:
+
+        [REGISTRY[:PORT] /] USER / REPO [:TAG]
+
+    """
+    repository: str
+    user: str = "library"
+    registry: DockerImageRegistry = dataclasses.field(default_factory=DockerImageRegistry)
+    tag: str = "latest"
+
+    def compile(self) -> str:
+        name = ""
+        defaults = DockerImageName("_")
+        # add - registry
+        registry = self.registry.compile()
+        if registry:
+            name += f"{registry}/"
+        # add - user
+        if self.user != defaults.user:
+            name += f"{self.user}/"
+        # add - repository
+        name += self.repository
+        # add - tag
+        if self.tag != defaults.tag:
+            name += f":{self.tag}"
+        # ---
+        return name
+
+    @staticmethod
+    def from_image_name(name: str) -> 'DockerImageName':
+        input_parts = name.split('/')
+        image = DockerImageName(
+            repository="X"
+        )
+        # ---
+        registry = None
+        # ---
+        if len(input_parts) == 3:
+            registry, image.user, image_tag = input_parts
+        elif len(input_parts) == 2:
+            image.user, image_tag = input_parts
+        elif len(input_parts) == 1:
+            image_tag = input_parts[0]
+        else:
+            raise ValueError("Invalid Docker image name")
+        image.repository, image.tag, *_ = image_tag.split(':') + ["latest"]
+        if registry:
+            image.registry.hostname, image.registry.port, *_ = registry.split(':') + [5000]
+        # ---
+        return image
+
+
 class CPKFileMappingTrigger(Enum):
     DEFAULT = "default"
     RUN_MOUNT = "run:mount"

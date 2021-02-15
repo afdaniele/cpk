@@ -8,12 +8,14 @@ from cpk.cli.commands.info import CLIInfoCommand
 from cpk.cli.commands.build import CLIBuildCommand
 from cpk.cli.commands.clean import CLICleanCommand
 from cpk.cli.commands.push import CLIPushCommand
+from cpk.cli.commands.decorate import CLIDecorateCommand
 
 _supported_commands = {
     'info': CLIInfoCommand,
     'build': CLIBuildCommand,
     'clean': CLICleanCommand,
     'push': CLIPushCommand,
+    'decorate': CLIDecorateCommand,
 }
 
 
