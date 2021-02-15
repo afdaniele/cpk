@@ -1,5 +1,8 @@
+import glob
+import os
 import sys
 from distutils.core import setup
+from typing import List
 
 
 def get_version(filename):
@@ -17,6 +20,18 @@ def get_version(filename):
     return version
 
 
+def get_decorator_files() -> List[str]:
+    this_file = os.path.abspath(__file__)
+    cpk_dir = os.path.join(os.path.dirname(this_file), "include", "cpk")
+    path = os.path.abspath(os.path.join(cpk_dir, "decorator"))
+    hidden = glob.glob(os.path.join(path, ".**"), recursive=True)
+    nonhidden = glob.glob(os.path.join(path, "**"), recursive=True)
+    items = hidden + nonhidden
+    files = filter(os.path.isfile, items)
+    files = list(map(lambda p: os.path.relpath(p, cpk_dir), files))
+    return files
+
+
 if sys.version_info < (3, 5):
     msg = 'cpk works with Python 3.5 and later.\nDetected %s.' % str(sys.version)
     sys.exit(msg)
@@ -31,13 +46,17 @@ setup(
         'cpk.cli',
         'cpk.cli.commands',
         'cpk.schemas',
-        'cpk.utils'
+        'cpk.utils',
+        'cpk.decorator'
     ],
     package_dir={
         'cpk': 'include/cpk'
     },
     package_data={
-        "cpk": ["schemas/*/*.json"],
+        "cpk": [
+            "schemas/*/*.json",
+            *get_decorator_files()
+        ],
     },
     version=lib_version,
     license='MIT',

@@ -1,0 +1,2 @@
+# LIST YOUR APT PACKAGES HERE
+python3-pip

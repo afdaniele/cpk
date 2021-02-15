@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -e
+
+if [ "$#" -ne 1 ]; then
+    echo >&2 "ERROR: You need to pass a dependencies list file as an argument to cpk-apt-install."
+    exit 1
+fi
+
+PACKAGES_LIST=$1
+PACKAGES=$(awk -F: '/^[^#]/ { print $1 }' $PACKAGES_LIST | uniq)
+HAS_PACKAGES=$(echo $PACKAGES | sed '/^\s*#/d;/^\s*$/d' | wc -l)
+
+if [ $HAS_PACKAGES -eq 1 ]; then
+    echo "Installing packages via APT..."
+    apt-get update
+    apt-get install -y --no-install-recommends $PACKAGES
+    rm -rf /var/lib/apt/lists/*
+else
+    echo "No packages to install via APT."
+fi
