@@ -12,6 +12,7 @@ from ...types import DockerImageName
 
 
 class CLIDecorateCommand(AbstractCLICommand):
+
     KEY = 'decorate'
 
     DOCKER_IMAGE_REGEX = "^((?:(?:[a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*(?:[a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9]))(?::([0-9]+)\\/)?(?:[0-9a-z-]+[/@])(?:([0-9a-z-]+))[/@]?(?:([0-9a-z-]+))?(?::[a-z0-9\\.-]+)?$"
@@ -22,27 +23,31 @@ class CLIDecorateCommand(AbstractCLICommand):
         parser = argparse.ArgumentParser(parents=[parent])
         # ---
         parser.add_argument(
-            "-i",
-            "--input",
-            required=True,
+            nargs=1,
+            dest="input",
+            metavar="INPUT",
+            help="The input image",
             type=regex_type(CLIDecorateCommand.DOCKER_IMAGE_REGEX)
         )
         parser.add_argument(
-            "-o",
-            "--output",
-            required=True,
+            nargs=1,
+            dest="output",
+            metavar="OUTPUT",
+            help="The output image",
             type=regex_type(CLIDecorateCommand.DOCKER_IMAGE_REGEX)
         )
         parser.add_argument(
             "-m",
             "--maintainer",
             required=True,
+            help="The image maintainer's name",
             type=str
         )
         parser.add_argument(
             "-e",
             "--email",
             default=None,
+            help="The image maintainer's email address",
             type=regex_type(CLIDecorateCommand.EMAIL_ADDRESS_REGEX)
         )
         return parser
@@ -50,21 +55,28 @@ class CLIDecorateCommand(AbstractCLICommand):
     @staticmethod
     def execute(parsed: argparse.Namespace) -> bool:
         # parse `input`
-        input_image = DockerImageName.from_image_name(parsed.input)
+        input_image = DockerImageName.from_image_name(parsed.input[0])
+        cpklogger.debug(f"+ Input Image:\n{str(input_image)}")
         # parse `output`
-        output_image = DockerImageName.from_image_name(parsed.output)
+        output_image = DockerImageName.from_image_name(parsed.output[0])
+        # append arch to the end of the output image
+        if output_image.arch is None:
+            output_image.arch = parsed.arch
+        cpklogger.debug(f"+ Output Image:\n{str(output_image)}")
         # make sure the `docker` CLI tool is installed
-        if which('docker') is None:
+        docker_cli = which('docker')
+        if docker_cli is None:
             cpklogger.error("The Docker CLI must be installed for this command to work.")
             return False
+        cpklogger.debug(f"Docker CLI found at {docker_cli}")
         # find decorator project inside the `cpk` library
         cpk_dir = os.path.dirname(os.path.abspath(cpk.__file__))
         decorator_dir = os.path.join(cpk_dir, "decorator")
         dockerfile = os.path.join(decorator_dir, "Dockerfile")
         # compile maintainer string
         maintainer = f"{parsed.maintainer} ({parsed.email})" if parsed.email else parsed.maintainer
-        # build image
-        subprocess.check_call([
+        # compile command
+        cmd = [
             "docker", "build",
             "-t", output_image.compile(),
             "-f", dockerfile,
@@ -78,7 +90,20 @@ class CLIDecorateCommand(AbstractCLICommand):
             "--build-arg", f"MAINTAINER={maintainer}",
             "--build-arg", f"CPK_VERSION={cpk.__version__}",
             decorator_dir
-        ])
+        ]
+        cpklogger.info(f"Decorating [{input_image.compile()}] -> [{output_image.compile()}]...")
+        cpklogger.debug(f"Running command:\n\t{cmd}")
+        # build image
+        try:
+            subprocess.check_call(cmd)
+        except subprocess.SubprocessError as e:
+            cpklogger.error(str(e))
+            return False
+        # success
+        cpklogger.info(f"The given image was successfully decorated for CPK.\n"
+                       f"Your CPK-compatible image is called\n\n"
+                       f"\t\t{output_image.compile()}\n\n"
+                       f"You can now use it as a base for your CPK projects and templates.")
         # ---
         return True
 
