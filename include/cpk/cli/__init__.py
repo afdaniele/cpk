@@ -74,6 +74,13 @@ class AbstractCLICommand(ABC):
         parsed = parser.parse_args(args)
         # sanitize workdir
         parsed.workdir = os.path.abspath(parsed.workdir)
+        # pick right value of `arch` given endpoint
+        if parsed.arch is None:
+            cpklogger.info("Parameter `arch` not given, will resolve it from the endpoint.")
+            docker = get_client(endpoint=parsed.machine)
+            parsed.arch = get_endpoint_architecture(docker)
+            cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
+
         # enable debug
         if parsed.debug:
             cpklogger.setLevel(logging.DEBUG)
