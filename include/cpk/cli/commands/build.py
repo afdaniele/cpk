@@ -32,12 +32,6 @@ class CLIBuildCommand(AbstractCLICommand):
     def parser(parent: Union[None, argparse.ArgumentParser] = None) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(parents=[parent])
         parser.add_argument(
-            "-H",
-            "--machine",
-            default=None,
-            help="Docker socket or hostname where to build the image"
-        )
-        parser.add_argument(
             "--pull",
             default=False,
             action="store_true",

@@ -12,12 +12,6 @@ class CLIPushCommand(AbstractCLICommand):
     def parser(parent: Union[None, argparse.ArgumentParser] = None) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(parents=[parent])
         parser.add_argument(
-            "-H",
-            "--machine",
-            default=None,
-            help="Docker socket or hostname from where to push the image"
-        )
-        parser.add_argument(
             "--rm",
             default=False,
             action="store_true",

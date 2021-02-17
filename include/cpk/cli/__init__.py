@@ -6,6 +6,7 @@ from typing import Union
 
 from cpk.cli.logger import cpklogger
 from cpk.constants import CANONICAL_ARCH
+from cpk.utils.docker import get_client, get_endpoint_architecture
 
 
 class AbstractCLICommand(ABC):
@@ -24,6 +25,12 @@ class AbstractCLICommand(ABC):
             "--workdir",
             default=os.getcwd(),
             help="Directory containing the CPK project"
+        )
+        parser.add_argument(
+            "-H",
+            "--machine",
+            default=None,
+            help="Docker socket or hostname where to perform the action"
         )
         parser.add_argument(
             "-a",
