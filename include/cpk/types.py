@@ -4,6 +4,7 @@ from enum import Enum
 
 import jsonschema
 
+from .constants import CANONICAL_ARCH
 from .exceptions import \
     NotACPKProjectException, \
     InvalidCPKTemplateFile, InvalidCPKTemplate, \
@@ -105,6 +106,9 @@ class DockerImageRegistry:
         # ---
         return name
 
+    def __str__(self) -> str:
+        return self.compile(allow_defaults=True)
+
 
 @dataclasses.dataclass
 class DockerImageName:
@@ -118,6 +122,7 @@ class DockerImageName:
     user: str = "library"
     registry: DockerImageRegistry = dataclasses.field(default_factory=DockerImageRegistry)
     tag: str = "latest"
+    arch: Union[None, str] = None
 
     def compile(self) -> str:
         name = ""
@@ -134,6 +139,9 @@ class DockerImageName:
         # add - tag
         if self.tag != defaults.tag:
             name += f":{self.tag}"
+        # add - arch
+        if self.arch:
+            name += f"-{self.arch}"
         # ---
         return name
 
@@ -154,11 +162,26 @@ class DockerImageName:
             image_tag = input_parts[0]
         else:
             raise ValueError("Invalid Docker image name")
-        image.repository, image.tag, *_ = image_tag.split(':') + ["latest"]
+        image.repository, tag, *_ = image_tag.split(':') + ["latest"]
+        for arch in set(CANONICAL_ARCH.values()):
+            if tag.endswith(f"-{arch}"):
+                tag = tag[:-(len(arch) + 1)]
+                image.arch = arch
+                break
+        image.tag = tag
         if registry:
             image.registry.hostname, image.registry.port, *_ = registry.split(':') + [5000]
         # ---
         return image
+
+    def __str__(self) -> str:
+        return f"""\
+Registry:\t{str(self.registry)}
+User:\t\t{self.user}
+Repository:\t{self.repository}
+Tag:\t\t{self.tag}
+Arch:\t\t{self.arch}
+        """
 
 
 class CPKFileMappingTrigger(Enum):
