@@ -11,46 +11,46 @@ from .exceptions import \
     CPKTemplateSchemaNotSupported
 from .schemas import get_template_schema
 import dataclasses
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Optional
 
 
 @dataclasses.dataclass
 class CPKProjectInfo:
     name: str
-    organization: str
-    description: Union[None, str]
-    maintainer: str
+    organization: Optional[str]
+    description: Optional[str]
+    maintainer: Optional[str]
     template: 'CPKTemplateInfo'
-    version: Union[None, str]
-    registry: Union[None, str]
-    tag: Union[None, str]
+    version: Optional[str]
+    registry: Optional[str]
+    tag: Optional[str]
 
 
 @dataclasses.dataclass
 class GitRepositoryVersion:
-    head: Union[None, str]
-    closest: Union[None, str]
+    head: Optional[str]
+    closest: Optional[str]
 
 
 @dataclasses.dataclass
 class GitRepositoryOrigin:
-    url: Union[None, str]
-    url_https: Union[None, str]
-    organization: Union[None, str]
+    url: Optional[str]
+    url_https: Optional[str]
+    organization: Optional[str]
 
 
 @dataclasses.dataclass
 class GitRepositoryIndex:
     clean: bool
-    num_added: Union[None, int]
-    num_modified: Union[None, int]
+    num_added: Optional[int]
+    num_modified: Optional[int]
 
 
 @dataclasses.dataclass
 class GitRepository:
-    name: Union[None, str]
-    sha: Union[None, str]
-    branch: Union[None, str]
+    name: Optional[str]
+    sha: Optional[str]
+    branch: Optional[str]
     present: bool
     detached: bool
     version: GitRepositoryVersion
@@ -94,7 +94,7 @@ class DockerImageRegistry:
             return False
         return True
 
-    def compile(self, allow_defaults: bool = False) -> Union[None, str]:
+    def compile(self, allow_defaults: bool = False) -> Optional[str]:
         defaults = DockerImageRegistry()
         name = None if not allow_defaults else f"{defaults.hostname}"
         # add - registry
@@ -122,7 +122,7 @@ class DockerImageName:
     user: str = "library"
     registry: DockerImageRegistry = dataclasses.field(default_factory=DockerImageRegistry)
     tag: str = "latest"
-    arch: Union[None, str] = None
+    arch: Optional[str] = None
 
     def compile(self) -> str:
         name = ""
@@ -201,8 +201,7 @@ class CPKFileMapping:
         return CPKFileMapping(
             source=data['source'],
             destination=data['destination'],
-            triggers=list(map(lambda t: CPKFileMappingTrigger(t),
-                              data.get('triggers', ["default"]))),
+            triggers=list(map(CPKFileMappingTrigger, data.get('triggers', ["default"]))),
             required=data.get('required', False)
         )
 
@@ -212,7 +211,7 @@ class CPKTemplateInfo:
     name: str
     version: str
     mappings: List[CPKFileMapping]
-    url: Union[None, str]
+    url: Optional[str]
     must_have: Dict[str, List[str]] = dataclasses.field(
         default_factory=lambda: {"files": [], "directories": []})
 

@@ -77,7 +77,7 @@ def login_client(client):
         client.login(username=username, password=password)
 
 
-def pull_image(image, endpoint=None, progress=True):
+def pull_image(image, endpoint=None, progress=True) -> bool:
     client = get_client(endpoint)
     layers = set()
     pulled = set()
@@ -95,6 +95,7 @@ def pull_image(image, endpoint=None, progress=True):
             pbar.update(percentage)
     if progress:
         pbar.done()
+    return True
 
 
 def push_image(image, endpoint=None, progress=True, **kwargs):

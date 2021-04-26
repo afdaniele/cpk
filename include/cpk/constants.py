@@ -28,5 +28,3 @@ DOCKERHUB_API_URL = {
     "digest": "https://registry-1.docker.io/v2/{image}/manifests/{tag}",
     "inspect": "https://registry-1.docker.io/v2/{image}/blobs/{digest}",
 }
-
-DEFAULT_PIP_INDEX_URL = "https://pypi.org/simple"

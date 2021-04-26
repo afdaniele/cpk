@@ -1,3 +1,4 @@
+import argparse
 import dataclasses
 import os
 import re
@@ -10,7 +11,7 @@ import requests
 
 from docker.errors import APIError, ImageNotFound
 
-from .adapters import FileSystemAdapter, ProjectFileAdapter, GitRepositoryAdapter
+from .adapters import FileSystemAdapter, ProjectFileAdapter, GitRepositoryAdapter, CLIAdapter
 from .adapters.generic import ProjectVersion, GenericAdapter
 from .constants import DOCKERHUB_API_URL
 from .exceptions import NotACPKProjectException, InvalidCPKProjectFile, \
@@ -23,13 +24,12 @@ from .utils import docker
 
 
 class CPKProject:
-
     must_have_files = {
         "Dockerfile"
     }
     must_have_directories = set()
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, parsed: argparse.Namespace = None):
         # make sure the directory exists
         self._path = os.path.abspath(path)
         if not os.path.isdir(self._path):
@@ -40,9 +40,11 @@ class CPKProject:
         self._validate_project_structure()
         # define adapters
         self._adapters = {
+            0: GenericAdapter("generic"),
             10: FileSystemAdapter(self._path),
             20: ProjectFileAdapter(self._info),
-            30: GitRepositoryAdapter(self._path)
+            30: GitRepositoryAdapter(self._path),
+            40: CLIAdapter(parsed)
         }
         # look for a git repo
         self._repo = get_repo_info(self._path)
@@ -56,6 +58,10 @@ class CPKProject:
     @property
     def name(self) -> str:
         return self._from_adapters("name")
+
+    @property
+    def registry(self) -> str:
+        return self._from_adapters("registry")
 
     @property
     def organization(self) -> str:
@@ -116,7 +122,7 @@ class CPKProject:
         assert_canonical_arch(arch)
         docs = "-docs" if docs else ""
         version = re.sub(r"[^\w\-.]", "-", self.version.tag)
-        return f"{self.organization}/{self.name}:{version}{docs}-{arch}"
+        return f"{self.registry}/{self.organization}/{self.name}:{version}{docs}-{arch}"
 
     def image_release(self, arch: str, docs: bool = False) -> str:
         if not self.is_release():
@@ -124,7 +130,7 @@ class CPKProject:
         assert_canonical_arch(arch)
         docs = "-docs" if docs else ""
         version = re.sub(r"[^\w\-.]", "-", self.version.head)
-        return f"{self.organization}/{self.name}:{version}{docs}-{arch}"
+        return f"{self.registry}/{self.organization}/{self.name}:{version}{docs}-{arch}"
 
     def configurations(self) -> dict:
         configurations = {}
@@ -151,7 +157,8 @@ class CPKProject:
             self.label("code.version.tag"): self.version.tag or "ND",
             self.label("code.version.head"): self.version.head or "ND",
             self.label("code.version.closest"): self.version.closest or "ND",
-            self.label("code.version.sha"): self.version.sha if self.version.sha and self.is_clean() else "ND",
+            self.label("code.version.sha"): self.version.sha if (self.version.sha and
+                                                                 self.is_clean()) else "ND",
             self.label("code.vcs.repository"): self.repository.name or "ND",
             self.label("code.vcs.branch"): self.repository.branch or "ND",
             self.label("code.vcs.url"): self.repository.origin.url_https or "ND",
@@ -236,7 +243,7 @@ class CPKProject:
                     raise CPKMissingResourceException(directory, explanation=msg)
 
     def _launchers_labels(self) -> Dict[str, str]:
-        return {self.label("code.launchers") : ",".join(self.launchers())}
+        return {self.label("code.launchers"): ",".join(self.launchers())}
 
     def _configurations_labels(self) -> Dict[str, str]:
         labels = {}

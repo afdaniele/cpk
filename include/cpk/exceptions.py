@@ -70,3 +70,10 @@ class CPKProjectBuildException(CPKException):
     def __init__(self, reason: Union[str, BaseException]):
         super(CPKProjectBuildException, self).__init__(f"The project failed to build. "
                                                        f"Reason:\n{str(reason)}")
+
+
+class CPKProjectPushException(CPKException):
+
+    def __init__(self, reason: Union[str, BaseException]):
+        super(CPKProjectPushException, self).__init__(f"The project failed to be pushed. "
+                                                       f"Reason:\n{str(reason)}")

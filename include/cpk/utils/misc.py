@@ -2,9 +2,11 @@ import ipaddress
 import subprocess
 from typing import Union
 
+import docker
 import yaml
+from docker.errors import ContainerError, ImageNotFound, APIError
 
-from cpk.constants import CANONICAL_ARCH, CONTAINER_LABEL_DOMAIN
+from cpk.constants import CANONICAL_ARCH, CONTAINER_LABEL_DOMAIN, BUILD_COMPATIBILITY_MAP
 
 
 def run_cmd(cmd):
@@ -54,6 +56,32 @@ def parse_configurations(config_file: str) -> dict:
     # TODO: handle configuration schemas properly (i.e., using JSON/XML schemas)
     if configurations_content["version"] == "1.0":
         return configurations_content["configurations"]
+
+
+def configure_binfmt(arch: str, epoint: docker.DockerClient, logger):
+    epoint_info = epoint.info()
+    epoint_arch = epoint_info["Architecture"]
+    compatible_archs = BUILD_COMPATIBILITY_MAP[CANONICAL_ARCH[epoint_arch]]
+    if arch not in compatible_archs:
+        logger.info("Configuring machine for multiarch builds...")
+        try:
+            epoint.containers.run(
+                "multiarch/qemu-user-static:register",
+                remove=True,
+                privileged=True,
+                command="--reset",
+            )
+            logger.info("Multiarch Enabled!")
+        except (ContainerError, ImageNotFound, APIError) as e:
+            msg = "Multiarch cannot be enabled on the target machine. " \
+                  "This might create issues."
+            logger.warning(msg)
+            logger.debug(f"The error reads:\n\t{str(e)}\n")
+    else:
+        msg = "Building an image for {} on {}. Multiarch not needed!".format(
+            arch, epoint_arch
+        )
+        logger.info(msg)
 
 
 def human_size(value: Union[int, float], suffix: str = "B", precision: int = 2):
