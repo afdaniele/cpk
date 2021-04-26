@@ -6,20 +6,18 @@ import sys
 import time
 import datetime
 from shutil import which
-from pathlib import Path
 from typing import Union
 
 from termcolor import colored
-from docker.errors import ImageNotFound, ContainerError, APIError
+from docker.errors import ImageNotFound, APIError
 
 from .info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
 from cpk import CPKProject
 from cpk.utils.docker import get_client, get_endpoint_ncpus, DOCKER_INFO, \
-    get_endpoint_architecture, DEFAULT_REGISTRY, pull_image
-from cpk.utils.misc import sanitize_hostname, cpk_label, human_size, human_time
-from ...constants import BUILD_COMPATIBILITY_MAP, CANONICAL_ARCH, DEFAULT_PIP_INDEX_URL
+    get_endpoint_architecture, pull_image
+from cpk.utils.misc import sanitize_hostname, human_size, human_time, configure_binfmt
 from ...exceptions import CPKProjectBuildException
 from ...utils.image_analyzer import EXTRA_INFO_SEPARATOR, ImageAnalyzer, SEPARATORS_LENGTH
 
@@ -102,6 +100,12 @@ class CLIBuildCommand(AbstractCLICommand):
             help="Build the code documentation as well"
         )
         parser.add_argument(
+            "--tag",
+            default=None,
+            type=str,
+            help="Custom tag"
+        )
+        parser.add_argument(
             "--ncpus",
             default=None,
             type=int,
@@ -113,10 +117,13 @@ class CLIBuildCommand(AbstractCLICommand):
     def execute(parsed: argparse.Namespace) -> bool:
         stime = time.time()
         parsed.workdir = os.path.abspath(parsed.workdir)
+
         # get project
-        project = CPKProject(parsed.workdir)
+        project = CPKProject(parsed.workdir, parsed=parsed)
+
         # show info about project
         CLIInfoCommand.execute(parsed)
+
         # check if the git HEAD is detached
         if project.is_detached():
             cpklogger.error(
@@ -124,6 +131,7 @@ class CLIBuildCommand(AbstractCLICommand):
                 "before continuing. Aborting."
             )
             return False
+
         # check if the index is clean
         if project.is_dirty():
             cpklogger.warning("Your index is not clean (some files are not committed).")
@@ -131,26 +139,14 @@ class CLIBuildCommand(AbstractCLICommand):
             if not parsed.force:
                 return False
             cpklogger.warning("Forced!")
+
         # sanitize hostname
         if parsed.machine is not None:
             parsed.machine = sanitize_hostname(parsed.machine)
-        # define build-args
-        buildargs = {"buildargs": {}, "labels": {}}
-        # add project build args
-        buildargs["buildargs"].update({
-            "ARCH": parsed.arch,
-            "NAME": project.name,
-            "DESCRIPTION": project.description,
-            "ORGANIZATION": project.organization,
-            "MAINTAINER": project.maintainer
-        })
-        # add project labels
-        buildargs["labels"].update(project.build_labels())
+
         # create docker client
         docker = get_client(parsed.machine)
-        # build-arg NCPUS
-        buildargs['buildargs']['NCPUS'] = \
-            str(get_endpoint_ncpus(parsed.machine)) if parsed.ncpus is None else str(parsed.ncpus)
+
         # get info about docker endpoint
         cpklogger.info("Retrieving info about Docker endpoint...")
         epoint = docker.info()
@@ -159,38 +155,37 @@ class CLIBuildCommand(AbstractCLICommand):
             return False
         epoint["MemTotal"] = human_size(epoint["MemTotal"])
         cpklogger.print(DOCKER_INFO.format(**epoint))
+
+        # define build-args
+        buildargs = {"buildargs": {}, "labels": {}}
+        # - add project build args
+        buildargs["buildargs"].update({
+            "ARCH": parsed.arch,
+            "NAME": project.name,
+            "DESCRIPTION": project.description,
+            "ORGANIZATION": project.organization,
+            "MAINTAINER": project.maintainer
+        })
+        # - add project labels
+        buildargs["labels"].update(project.build_labels())
+        # - build-arg NCPUS
+        buildargs['buildargs']['NCPUS'] = \
+            str(get_endpoint_ncpus(docker)) if parsed.ncpus is None else str(parsed.ncpus)
+
         # pick the right architecture if not set
         if parsed.arch is None:
             parsed.arch = get_endpoint_architecture(parsed.machine)
             cpklogger.info(f"Target architecture automatically set to {parsed.arch}.")
+
         # create defaults
         image = project.image(parsed.arch)
+
         # print info about multiarch
         msg = "Building an image for {} on {}.".format(parsed.arch, epoint["Architecture"])
         cpklogger.info(msg)
-        # register bin_fmt in the target machine (if needed)
+        # - register bin_fmt in the target machine (if needed)
         if not parsed.no_multiarch:
-            compatible_archs = BUILD_COMPATIBILITY_MAP[CANONICAL_ARCH[epoint["Architecture"]]]
-            if parsed.arch not in compatible_archs:
-                cpklogger.info("Configuring machine for multiarch builds...")
-                try:
-                    docker.containers.run(
-                        "multiarch/qemu-user-static:register",
-                        remove=True,
-                        privileged=True,
-                        command="--reset",
-                    )
-                    cpklogger.info("Multiarch Enabled!")
-                except (ContainerError, ImageNotFound, APIError) as e:
-                    msg = "Multiarch cannot be enabled on the target machine. "\
-                          "This might create issues."
-                    cpklogger.warning(msg)
-                    cpklogger.debug(f"The error reads:\n\t{str(e)}\n")
-            else:
-                msg = "Building an image for {} on {}. Multiarch not needed!".format(
-                    parsed.arch, epoint["Architecture"]
-                )
-                cpklogger.info(msg)
+            configure_binfmt(parsed.arch, docker, cpklogger)
 
         # architecture target
         buildargs["buildargs"]["ARCH"] = parsed.arch
