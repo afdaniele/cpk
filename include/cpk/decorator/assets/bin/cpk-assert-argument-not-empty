@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+
+import sys
+
+if len(sys.argv) != 2:
+    print(f"ERROR: cpk-assert-argument-not-empty expects 1 positional argument, "
+          f"{len(sys.argv) - 1} were given.")
+    exit(1)
+
+value = sys.argv[1].strip().lower()
+
+if len(value) <= 0:
+    print(f"Assertion Error: argument value cannot be empty")
+    exit(1)

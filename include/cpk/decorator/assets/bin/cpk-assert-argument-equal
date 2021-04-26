@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+
+import sys
+
+if len(sys.argv) != 3:
+    print(f"ERROR: cpk-assert-argument-equal expects 2 positional arguments, "
+          f"{len(sys.argv) - 1} were given.")
+    exit(1)
+
+value = sys.argv[1].strip()
+reference = sys.argv[2].strip()
+
+if value != reference:
+    print(f"Assertion Error: argument value must be {reference}")
+    exit(1)
