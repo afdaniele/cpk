@@ -1,9 +1,9 @@
 import os
 
-from .generic import GenericAdapter
+from .null import NullAdapter
 
 
-class FileSystemAdapter(GenericAdapter):
+class FileSystemAdapter(NullAdapter):
 
     def __init__(self, path: str):
         super(FileSystemAdapter, self).__init__('fs')

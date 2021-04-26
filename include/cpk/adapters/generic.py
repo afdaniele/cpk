@@ -1,5 +1,6 @@
 import getpass
 import dataclasses
+import os
 from typing import Union
 
 
@@ -24,6 +25,10 @@ class GenericAdapter:
     @property
     def name(self) -> str:
         return "project"
+
+    @property
+    def registry(self) -> str:
+        return os.environ.get("DOCKER_REGISTRY", "docker.io")
 
     @property
     def organization(self) -> str:

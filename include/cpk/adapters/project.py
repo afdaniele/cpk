@@ -1,10 +1,11 @@
-from typing import Union
+from typing import Optional
 
-from .generic import GenericAdapter, ProjectVersion
+from .generic import ProjectVersion
 from cpk.types import CPKProjectInfo
+from .null import NullAdapter
 
 
-class ProjectFileAdapter(GenericAdapter):
+class ProjectFileAdapter(NullAdapter):
 
     def __init__(self, info: CPKProjectInfo):
         super(ProjectFileAdapter, self).__init__('project.cpk')
@@ -16,22 +17,26 @@ class ProjectFileAdapter(GenericAdapter):
         return self._info.name
 
     @property
-    def organization(self) -> str:
-        return self._info.organization or super(ProjectFileAdapter, self).organization
+    def registry(self) -> str:
+        return self._info.registry
 
     @property
-    def description(self) -> Union[None, str]:
+    def organization(self) -> str:
+        return self._info.organization
+
+    @property
+    def description(self) -> Optional[str]:
         return self._info.description
 
     @property
     def version(self) -> ProjectVersion:
         return ProjectVersion(
-            tag=self._info.tag or super(ProjectFileAdapter, self).version.tag,
-            head=self._info.version or super(ProjectFileAdapter, self).version.head,
-            closest=self._info.version or super(ProjectFileAdapter, self).version.closest,
+            tag=self._info.tag or "latest",
+            head=self._info.version or None,
+            closest=self._info.version or None,
             sha=None
         )
 
     @property
-    def maintainer(self) -> Union[None, str]:
-        return self._info.maintainer or super(ProjectFileAdapter, self).maintainer
+    def maintainer(self) -> Optional[str]:
+        return self._info.maintainer

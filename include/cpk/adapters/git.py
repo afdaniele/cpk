@@ -1,10 +1,11 @@
 from typing import Union
 
-from .generic import GenericAdapter, ProjectVersion
+from .generic import ProjectVersion
+from .null import NullAdapter
 from ..utils.git import get_repo_info
 
 
-class GitRepositoryAdapter(GenericAdapter):
+class GitRepositoryAdapter(NullAdapter):
 
     def __init__(self, path: str):
         super(GitRepositoryAdapter, self).__init__('git')
