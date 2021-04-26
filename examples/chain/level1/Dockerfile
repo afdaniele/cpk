@@ -8,7 +8,7 @@ ARG MAINTAINER
 # ==================================================>
 # ==> Do not change the code below this line
 ARG BASE_REGISTRY=docker.io
-ARG BASE_ORGANIZATION=cpk
+ARG BASE_ORGANIZATION=cpkbase
 ARG BASE_REPOSITORY=ubuntu
 ARG BASE_TAG=focal
 
