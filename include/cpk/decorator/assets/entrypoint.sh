@@ -1,7 +1,5 @@
 #!/bin/bash
 
-echo "==> Entrypoint"
-
 # if anything weird happens from now on, STOP
 set -e
 
@@ -10,6 +8,8 @@ cpk-debug() {
         echo "DEBUG: $1"
     fi
 }
+
+cpk-debug "==> Entrypoint"
 
 cpk-configure-python() {
     # make user libraries discoverable
@@ -59,7 +59,7 @@ export CPK_ENTRYPOINT_SOURCED
 # if anything weird happens from now on, CONTINUE
 set +e
 
-echo "<== Entrypoint"
+cpk-debug "<== Entrypoint"
 
 # exit if this file is just being sourced
 if [ "$0" != "${BASH_SOURCE[0]}" ]; then
