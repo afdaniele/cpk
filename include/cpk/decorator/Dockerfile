@@ -38,7 +38,6 @@ COPY ./assets/qemu/${ARCH}/ /usr/bin/
 # setup environment
 ENV INITSYSTEM="off" \
     QEMU_EXECVE="1" \
-    QEMU_VERSION="5.0.0-2" \
     TERM="xterm" \
     LANG="C.UTF-8" \
     LC_ALL="C.UTF-8" \
