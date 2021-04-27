@@ -14,12 +14,14 @@ from .info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
 from ...exceptions import NotACPKProjectException
+from ...types import CPKFileMappingTrigger
 
 DEFAULT_NETWORK_MODE = "bridge"
 LAUNCHER_FMT = "launcher-{launcher}"
 SUPPORTED_SUBCOMMANDS = [
     "attach"
 ]
+TRIGGERS = {CPKFileMappingTrigger.DEFAULT, CPKFileMappingTrigger.RUN_MOUNT}
 
 
 class CLIRunCommand(AbstractCLICommand):
@@ -163,14 +165,13 @@ class CLIRunCommand(AbstractCLICommand):
             return False
 
         # check if the index is clean
-        mount_code = parsed.mount is True or isinstance(parsed.mount, str)
-        if project.is_dirty():
-            if mount_code:
-                cpklogger.warning("Your index is not clean (some files are not committed).")
-                cpklogger.warning("If you know what you are doing, use --force (-f) to force.")
-                if not parsed.force:
-                    return False
-                cpklogger.warning("Forced!")
+        mount_source = parsed.mount is True or isinstance(parsed.mount, str)
+        if project.is_dirty() and mount_source:
+            cpklogger.warning("Your index is not clean (some files are not committed).")
+            cpklogger.warning("If you know what you are doing, use --force (-f) to force.")
+            if not parsed.force:
+                return False
+            cpklogger.warning("Forced!")
 
         # sanitize hostname
         if parsed.machine is not None:
@@ -248,7 +249,7 @@ class CLIRunCommand(AbstractCLICommand):
         # mount code
         mount_option = []
         # mount source code (if requested)
-        if mount_code:
+        if mount_source:
             # (always) mount current project
             projects_to_mount = [parsed.workdir] if parsed.mount is True else []
             # mount secondary projects
@@ -261,24 +262,23 @@ class CLIRunCommand(AbstractCLICommand):
                 # make sure that the project exists
                 if not os.path.isdir(project_path):
                     cpklogger.error('The path "{:s}" is not a CPK project'.format(project_path))
+                    return False
                 # get project info
                 try:
                     proj = CPKProject(project_path)
                 except NotACPKProjectException:
                     cpklogger.error(f"The path '{project_path}' does not contain a CPK project.")
                     return False
-                # TODO: we need to use the triggers instead of this
-                # # get local and remote paths to code and launchfile
-                # local_src, destination_src = proj.code_paths()
-                # local_launch, destination_launch = proj.launch_paths()
-                # # compile mounpoints
-                # mount_option += [
-                #     "-v",
-                #     "{:s}:{:s}".format(os.path.join(project_path, local_src), destination_src),
-                #     "-v",
-                #     "{:s}:{:s}".format(os.path.join(project_path, local_launch),
-                #                        destination_launch),
-                # ]
+                # iterate over list of mappings
+                for mapping in proj.mappings:
+                    if TRIGGERS.intersection(set(mapping.triggers)):
+                        mpoint_source = mapping.source if os.path.isabs(mapping.source) else \
+                            os.path.join(project_path, mapping.source)
+                        mpoint_destination = mapping.destination
+                        # compile mounpoints
+                        mount_option += [
+                            "-v", "{:s}:{:s}".format(mpoint_source, mpoint_destination)
+                        ]
 
         # pulling image (if requested)
         if parsed.pull or parsed.force_pull:
