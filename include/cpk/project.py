@@ -1,4 +1,5 @@
 import argparse
+import copy
 import dataclasses
 import os
 import re
@@ -17,7 +18,7 @@ from .constants import DOCKERHUB_API_URL
 from .exceptions import NotACPKProjectException, InvalidCPKProjectFile, \
     CPKProjectSchemaNotSupported, CPKMissingResourceException
 from .schemas import get_project_schema
-from .types import CPKProjectInfo, GitRepository, CPKTemplateInfo
+from .types import CPKProjectInfo, GitRepository, CPKTemplateInfo, CPKFileMapping
 from .utils.git import get_repo_info
 from .utils.misc import assert_canonical_arch, parse_configurations, cpk_label
 from .utils import docker
@@ -98,6 +99,34 @@ class CPKProject:
     @property
     def features(self) -> 'CPKProjectFeatures':
         return self._features
+
+    @property
+    def mappings(self) -> List[CPKFileMapping]:
+        project_maps = self._info.mappings
+        template_maps = []
+        # project mappings have the priority over template mappings,
+        # keep only the template mappings whose destination does not collide with any
+        # of the project mappings
+        for tmapping in self._info.template.mappings:
+            collision = False
+            for pmapping in project_maps:
+                if pmapping.destination == tmapping.destination:
+                    collision = True
+                    break
+            if not collision:
+                template_maps.append(tmapping)
+        # replace placeholders in mappings
+        placeholders = {
+            "project_name": self.name
+        }
+        mappings = []
+        for mapping in template_maps + project_maps:
+            cmapping = copy.deepcopy(mapping)
+            cmapping.source = mapping.source.format(**placeholders)
+            cmapping.destination = mapping.destination.format(**placeholders)
+            mappings.append(cmapping)
+        # ---
+        return mappings
 
     def resource(self, resource: str) -> str:
         return os.path.join(self.path, resource.lstrip('/'))
@@ -291,7 +320,8 @@ class CPKProject:
             template=template,
             version=data.get("version", None),
             registry=data.get("registry", None),
-            tag=data.get("version", None)
+            tag=data.get("version", None),
+            mappings=list(map(lambda m: CPKFileMapping.from_dict(m), data.get('mappings', [])))
         )
 
     @staticmethod

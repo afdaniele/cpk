@@ -1,3 +1,4 @@
+import copy
 import os
 import json
 from enum import Enum
@@ -11,7 +12,7 @@ from .exceptions import \
     CPKTemplateSchemaNotSupported
 from .schemas import get_template_schema
 import dataclasses
-from typing import Union, List, Dict, Optional
+from typing import List, Dict, Optional
 
 
 @dataclasses.dataclass
@@ -24,6 +25,7 @@ class CPKProjectInfo:
     version: Optional[str]
     registry: Optional[str]
     tag: Optional[str]
+    mappings: List['CPKFileMapping'] = dataclasses.field(default_factory=list)
 
 
 @dataclasses.dataclass
@@ -195,6 +197,17 @@ class CPKFileMapping:
     destination: str
     triggers: List[CPKFileMappingTrigger]
     required: bool
+
+    def __copy__(self):
+        return self.__deepcopy__({})
+
+    def __deepcopy__(self, memo):
+        return CPKFileMapping(
+            source=self.source,
+            destination=self.destination,
+            triggers=copy.deepcopy(self.triggers),
+            required=self.required
+        )
 
     @staticmethod
     def from_dict(data: dict) -> 'CPKFileMapping':

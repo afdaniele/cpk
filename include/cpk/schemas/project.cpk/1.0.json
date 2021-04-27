@@ -40,6 +40,36 @@
         "tag": {
             "type": "string",
             "minLength": 1
+        },
+        "mappings": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "source": {
+                        "type": "string"
+                    },
+                    "destination": {
+                        "type": "string"
+                    }
+                },
+                "patternProperties": {
+                    "triggers": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "default",
+                                "run:mount"
+                            ]
+                        }
+                    },
+                    "required": {
+                        "type": "boolean"
+                    }
+                },
+                "additionalProperties": false
+            }
         }
     },
     "additionalProperties": false
