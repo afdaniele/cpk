@@ -7,7 +7,8 @@ from cpk.types import GitRepositoryOrigin, GitRepositoryIndex, GitRepositoryVers
 
 
 def get_repo_info(path: str) -> Union[None, GitRepository]:
-    if not os.path.exists(os.path.join(path, '.git')):
+    path = os.path.join(path, '.git')
+    if not os.path.exists(path):
         return GitRepository.default()
     # ---
     # get repo info
@@ -79,7 +80,7 @@ def remote_url_to_https(remote_url: str) -> str:
 
 def remote_url_to_organization(remote_url: str) -> Union[None, str]:
     remote_url = remote_url_to_https(remote_url)
-    https_pattern = "https://[^/]+/([^/]+)/.+"
+    https_pattern = "http[s]?://[^/]+/([^/]+)/.+"
     res = re.search(https_pattern, remote_url, re.IGNORECASE)
     if res:
         return res.group(1)
