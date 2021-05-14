@@ -17,7 +17,6 @@ from ...exceptions import NotACPKProjectException
 from ...types import CPKFileMappingTrigger
 
 DEFAULT_NETWORK_MODE = "bridge"
-LAUNCHER_FMT = "launcher-{launcher}"
 SUPPORTED_SUBCOMMANDS = [
     "attach"
 ]
@@ -133,6 +132,12 @@ class CLIRunCommand(AbstractCLICommand):
             help="Detach from the container and let it run"
         )
         parser.add_argument(
+            "--tag",
+            default=None,
+            type=str,
+            help="Custom tag"
+        )
+        parser.add_argument(
             "docker_args",
             nargs="*",
             default=[]
@@ -151,7 +156,7 @@ class CLIRunCommand(AbstractCLICommand):
         parsed.workdir = os.path.abspath(parsed.workdir)
 
         # get project
-        project = CPKProject(parsed.workdir)
+        project = CPKProject(parsed.workdir, parsed=parsed)
 
         # show info about project
         CLIInfoCommand.execute(parsed)
@@ -298,8 +303,10 @@ class CLIRunCommand(AbstractCLICommand):
         if parsed.cmd and parsed.launcher:
             raise ValueError("You cannot use the option --launcher together with --cmd.")
 
+        # environment
+        environment = []
         if parsed.launcher:
-            parsed.cmd = LAUNCHER_FMT.format(launcher=parsed.launcher)
+            environment.extend(["-e", f"CPK_LAUNCHER={parsed.launcher}"])
 
         cmd_option = [] if not parsed.cmd else [parsed.cmd]
         cmd_arguments = (
@@ -319,6 +326,7 @@ class CLIRunCommand(AbstractCLICommand):
             parsed.docker_args += ["--rm"]
         if parsed.detach:
             parsed.docker_args += ["-d"]
+
         # add container name to docker args
         parsed.docker_args += ["--name", parsed.name]
         # escape spaces in arguments
@@ -329,6 +337,7 @@ class CLIRunCommand(AbstractCLICommand):
             + docker_epoint_args
             + ["run", "-it"]
             + module_configuration_args
+            + environment
             + parsed.docker_args
             + mount_option
             + [image]
