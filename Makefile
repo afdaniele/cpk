@@ -37,7 +37,7 @@ format:
 
 test:
 	$(MAKE) test-unit
-	$(MAKE) -f ${ROOT_DIR}/tests/distribution/Makefile test-all
+	#$(MAKE) -f ${ROOT_DIR}/tests/distribution/Makefile test-all
 
 test-unit:
 	$(MAKE) test-one-unit TEST="test_*"
