@@ -30,7 +30,7 @@ class AbstractCLICommand(ABC):
             "-H",
             "--machine",
             default=None,
-            help="Docker socket or hostname where to perform the action"
+            help="CPK machine or endpoint hostname where to perform the action"
         )
         parser.add_argument(
             "-a",

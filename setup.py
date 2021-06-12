@@ -69,8 +69,17 @@ setup(
     zip_safe=False,
     include_package_data=True,
     keywords=['code', 'container', 'containerization', 'package', 'toolkit', 'docker'],
-    install_requires=['docker', 'requests', 'jsonschema', 'termcolor', 'pyyaml'],
-    scripts=['include/cpk/bin/cpk'],
+    install_requires=[
+        'docker',
+        'requests',
+        'jsonschema',
+        'termcolor',
+        'pyyaml',
+        'sshconf'
+    ],
+    scripts=[
+        'include/cpk/bin/cpk'
+    ],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',

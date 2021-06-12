@@ -1,3 +1,4 @@
+import abc
 import copy
 import os
 import json
@@ -5,7 +6,7 @@ from enum import Enum
 
 import jsonschema
 
-from .constants import CANONICAL_ARCH
+from .constants import CANONICAL_ARCH, CPK_CONFIG_DIR
 from .exceptions import \
     NotACPKProjectException, \
     InvalidCPKTemplateFile, InvalidCPKTemplate, \
@@ -13,6 +14,8 @@ from .exceptions import \
 from .schemas import get_template_schema
 import dataclasses
 from typing import List, Dict, Optional
+
+from sshconf import empty_ssh_config_file, read_ssh_config, SshConfig
 
 
 @dataclasses.dataclass
@@ -273,3 +276,57 @@ class CPKTemplateInfo:
             raise InvalidCPKTemplateFile(path, "Missing field: `schema`")
         # ---
         return CPKTemplateInfo.from_template_dict(data)
+
+
+@abc.ABCMeta
+class Machine:
+
+    def __init__(self, name: str):
+        self._name = name
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @abc.abstractmethod
+    def get_host_string(self) -> str:
+        raise NotImplementedError("Method get_host_string needs to be implemented by child class")
+
+
+@dataclasses.dataclass
+class CPKSSHKey:
+    name: str
+    public_key_path: str
+    private_key_path: str
+
+
+@dataclasses.dataclass
+class CPKSSHConfig:
+    keys: List[CPKSSHKey]
+    config: SshConfig
+
+    @staticmethod
+    def from_disk(path: str = CPK_CONFIG_DIR) -> 'CPKSSHConfig':
+        config_fpath = os.path.join(path, "ssh", "config")
+        keys_fpath = os.path.join(path, "ssh", "keys")
+        if os.path.isfile(config_fpath):
+            # read config file from disk
+            ssh_config = read_ssh_config(config_fpath)
+        else:
+            # create empty config
+            ssh_config = SshConfig([empty_ssh_config_file()])
+        # TODO: read list of keys
+        # pack everything in a CPKSSHConfig object
+        return CPKSSHConfig(
+            keys=[],
+            config=ssh_config
+        )
+
+
+@dataclasses.dataclass
+class CPKConfiguration:
+    path: str
+    machines: List[Machine]
+    ssh: CPKSSHConfig
+
+
