@@ -8,15 +8,18 @@ from typing import Union, Callable
 import cpk
 from .. import AbstractCLICommand
 from ..logger import cpklogger
-from ...types import DockerImageName
+from ...types import DockerImageName, Machine
 
 
 class CLIDecorateCommand(AbstractCLICommand):
 
     KEY = 'decorate'
 
-    DOCKER_IMAGE_REGEX = "^((?:(?:[a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*(?:[a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9]))(?::([0-9]+)\\/)?(?:[0-9a-z-]+[/@])(?:([0-9a-z-]+))[/@]?(?:([0-9a-z-]+))?(?::[a-z0-9\\.-]+)?$"
-    EMAIL_ADDRESS_REGEX = "^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$"
+    DOCKER_IMAGE_REGEX = r"^((?:(?:[a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*" \
+                         r"(?:[a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9]))(?::([0-9]+)\\/)?" \
+                         r"(?:[0-9a-z-]+[/@])(?:([0-9a-z-]+))[/@]?(?:([0-9a-z-]+))?" \
+                         r"(?::[a-z0-9\\.-]+)?$"
+    EMAIL_ADDRESS_REGEX = r"^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$"
 
     @staticmethod
     def parser(parent: Union[None, argparse.ArgumentParser] = None) -> argparse.ArgumentParser:
@@ -53,7 +56,7 @@ class CLIDecorateCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(parsed: argparse.Namespace) -> bool:
+    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
         # parse `input`
         input_image = DockerImageName.from_image_name(parsed.input[0])
         cpklogger.debug(f"+ Input Image:\n{str(input_image)}")

@@ -14,7 +14,7 @@ from .info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
 from ...exceptions import NotACPKProjectException
-from ...types import CPKFileMappingTrigger
+from ...types import CPKFileMappingTrigger, Machine
 
 DEFAULT_NETWORK_MODE = "bridge"
 SUPPORTED_SUBCOMMANDS = [
@@ -152,14 +152,14 @@ class CLIRunCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(parsed: argparse.Namespace) -> bool:
+    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
         parsed.workdir = os.path.abspath(parsed.workdir)
 
         # get project
         project = CPKProject(parsed.workdir, parsed=parsed)
 
         # show info about project
-        CLIInfoCommand.execute(parsed)
+        CLIInfoCommand.execute(machine, parsed)
 
         # check if the git HEAD is detached
         if project.is_detached():
@@ -178,14 +178,11 @@ class CLIRunCommand(AbstractCLICommand):
                 return False
             cpklogger.warning("Forced!")
 
-        # sanitize hostname
-        if parsed.machine is not None:
-            parsed.machine = sanitize_hostname(parsed.machine)
-
         # create docker client
-        docker = get_client(parsed.machine)
+        docker = machine.get_client()
 
         # get info about docker endpoint
+        # TODO: turn this into a docker-util
         cpklogger.info("Retrieving info about Docker endpoint...")
         epoint = docker.info()
         if "ServerErrors" in epoint:
@@ -196,7 +193,7 @@ class CLIRunCommand(AbstractCLICommand):
 
         # pick the right architecture if not set
         if parsed.arch is None:
-            parsed.arch = get_endpoint_architecture(parsed.machine)
+            parsed.arch = machine.get_architecture()
             cpklogger.info(f"Target architecture automatically set to {parsed.arch}.")
 
         # create defaults
@@ -204,22 +201,23 @@ class CLIRunCommand(AbstractCLICommand):
         parsed.name = parsed.name or f"cpk-run-{project.name}"
 
         # subcommand "attach"
-        if parsed.subcommand == "attach":
-            cpklogger.info(f"Attempting to attach to container '{parsed.name}'...")
-            # run
-            _run_cmd(
-                [
-                    "docker",
-                    "-H=%s" % parsed.machine,
-                    "exec",
-                    "-it",
-                    parsed.name,
-                    "/entrypoint.sh",
-                    "bash",
-                ],
-                suppress_errors=True,
-            )
-            return True
+        # TODO: this will not work with Machine created from env, the host will be None
+        # if parsed.subcommand == "attach":
+        #     cpklogger.info(f"Attempting to attach to container '{parsed.name}'...")
+        #     # run
+        #     _run_cmd(
+        #         [
+        #             "docker",
+        #             "-H=%s" % machine.host,
+        #             "exec",
+        #             "-it",
+        #             parsed.name,
+        #             "/entrypoint.sh",
+        #             "bash",
+        #         ],
+        #         suppress_errors=True,
+        #     )
+        #     return True
 
         # print info about multiarch
         msg = "Running an image for {} on {}.".format(parsed.arch, epoint["Architecture"])
@@ -243,7 +241,7 @@ class CLIRunCommand(AbstractCLICommand):
 
         # pick the right architecture if not set
         if parsed.arch is None:
-            parsed.arch = get_endpoint_architecture(parsed.machine)
+            parsed.arch = machine.get_architecture()
             cpklogger.info(f"Target architecture automatically set to {parsed.arch}.")
 
         # create the module configuration
@@ -316,8 +314,9 @@ class CLIRunCommand(AbstractCLICommand):
 
         # endpoint arguments
         docker_epoint_args = []
-        if parsed.machine is not None:
-            docker_epoint_args += ["-H", parsed.machine]
+        # TODO: this should be using the Python SDK for Docker, not Docker CLI
+        if machine.host is not None:
+            docker_epoint_args += ["-H", machine.host]
 
         # docker arguments
         if not parsed.docker_args:
@@ -352,7 +351,8 @@ class CLIRunCommand(AbstractCLICommand):
             cpklogger.debug(f"Command exited with exit code [{exitcode}].")
 
 
-def _run_cmd(cmd, get_output=False, print_output=False, suppress_errors=False, shell=False, return_exitcode=False):
+def _run_cmd(cmd, get_output=False, print_output=False, suppress_errors=False, shell=False,
+             return_exitcode=False):
     if shell and isinstance(cmd, (list, tuple)):
         cmd = " ".join([str(s) for s in cmd])
     cpklogger.debug("$ %s" % cmd)

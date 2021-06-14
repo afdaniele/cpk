@@ -2,6 +2,7 @@ import argparse
 from typing import Union
 
 from .. import AbstractCLICommand
+from ...types import Machine
 
 
 class CLICleanCommand(AbstractCLICommand):
@@ -14,6 +15,6 @@ class CLICleanCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(parsed: argparse.Namespace) -> bool:
+    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
         # TODO
         pass

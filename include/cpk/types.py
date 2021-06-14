@@ -5,15 +5,17 @@ import json
 from enum import Enum
 
 import jsonschema
+from cpk.utils.progress_bar import ProgressBar
+from docker import DockerClient
 
 from .constants import CANONICAL_ARCH, CPK_CONFIG_DIR
 from .exceptions import \
     NotACPKProjectException, \
     InvalidCPKTemplateFile, InvalidCPKTemplate, \
-    CPKTemplateSchemaNotSupported
+    CPKTemplateSchemaNotSupported, CPKException
 from .schemas import get_template_schema
 import dataclasses
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 
 from sshconf import empty_ssh_config_file, read_ssh_config, SshConfig
 
@@ -281,16 +283,93 @@ class CPKTemplateInfo:
 @abc.ABCMeta
 class Machine:
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, host: Optional[str] = None):
         self._name = name
+        self._host = host
 
     @property
     def name(self) -> str:
         return self._name
 
+    @property
+    def host(self) -> Optional[str]:
+        return self._host
+
     @abc.abstractmethod
-    def get_host_string(self) -> str:
-        raise NotImplementedError("Method get_host_string needs to be implemented by child class")
+    def get_client(self) -> DockerClient:
+        raise NotImplementedError("Method 'get_client' needs to be implemented by child class")
+
+    def get_architecture(self) -> str:
+        client = self.get_client()
+        # ---
+        endpoint_arch = client.info()["Architecture"]
+        if endpoint_arch not in CANONICAL_ARCH:
+            raise CPKException(f"Unsupported architecture '{endpoint_arch}'.")
+        return CANONICAL_ARCH[endpoint_arch]
+
+    def get_ncpus(self, ) -> Optional[int]:
+        # noinspection PyBroadException
+        try:
+            return self.get_client().info()["NCPU"]
+        except BaseException:
+            return None
+
+    def login_client(self):
+        username = os.environ.get('DOCKER_USERNAME', None)
+        password = os.environ.get('DOCKER_PASSWORD', None)
+        if username is not None and password is not None:
+            self.get_client().login(username=username, password=password)
+
+    def pull_image(self, image, progress=True) -> bool:
+        client = self.get_client()
+        layers = set()
+        pulled = set()
+        pbar = ProgressBar() if progress else None
+        for line in client.api.pull(image, stream=True, decode=True):
+            if "id" not in line or "status" not in line:
+                continue
+            layer_id = line["id"]
+            layers.add(layer_id)
+            if line["status"] in ["Already exists", "Pull complete"]:
+                pulled.add(layer_id)
+            # update progress bar
+            if progress:
+                percentage = max(0.0, min(1.0, len(pulled) / max(1.0, len(layers)))) * 100.0
+                pbar.update(percentage)
+        if progress:
+            pbar.done()
+        return True
+
+    def push_image(self, image, progress=True, **kwargs):
+        client = self.get_client()
+        layers = set()
+        pushed = set()
+        pbar = ProgressBar() if progress else None
+        for line in client.api.push(*image.split(":"), stream=True, decode=True, **kwargs):
+            if "id" not in line or "status" not in line:
+                continue
+            layer_id = line["id"]
+            layers.add(layer_id)
+            if line["status"] in ["Layer already exists", "Pushed"]:
+                pushed.add(layer_id)
+            # update progress bar
+            if progress:
+                percentage = max(0.0, min(1.0, len(pushed) / max(1.0, len(layers)))) * 100.0
+                pbar.update(percentage)
+        if progress:
+            pbar.done()
+
+    def transfer_image(self, destination: 'Machine', image, image_size):
+        # TODO: re-implement this using in-Python sockets
+        # monitor_info = "" if which("pv") else " (install `pv` to see the progress)"
+        # cpklogger.info(f'Transferring image "{image}": [{origin}] -> [{destination}]{monitor_info}...')
+        # data_source = ["docker", "-H=%s" % origin, "save", image]
+        # data_destination = ["docker", "-H=%s" % destination, "load"]
+        # progress_monitor = ["|", "pv", "-cN", "image", "-s", image_size] if which("pv") else []
+        # cmd = data_source + progress_monitor + data_destination
+        # TODO: re-enable this
+        # start_command_in_subprocess(cmd, nostdout=True)
+        pass
 
 
 @dataclasses.dataclass

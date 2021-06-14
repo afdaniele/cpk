@@ -5,7 +5,6 @@ import os
 import sys
 import time
 import datetime
-from shutil import which
 from typing import Union
 
 from termcolor import colored
@@ -15,11 +14,12 @@ from .info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
 from cpk import CPKProject
-from cpk.utils.docker import get_client, get_endpoint_ncpus, DOCKER_INFO, \
-    get_endpoint_architecture, pull_image
-from cpk.utils.misc import sanitize_hostname, human_size, human_time, configure_binfmt
+from cpk.utils.docker import DOCKER_INFO
+from cpk.utils.misc import human_size, human_time, configure_binfmt
 from ...exceptions import CPKProjectBuildException
+from ...types import Machine
 from ...utils.image_analyzer import EXTRA_INFO_SEPARATOR, ImageAnalyzer, SEPARATORS_LENGTH
+from ...utils.machine import get_machine
 
 
 class CLIBuildCommand(AbstractCLICommand):
@@ -91,7 +91,7 @@ class CLIBuildCommand(AbstractCLICommand):
             "-D",
             "--destination",
             default=None,
-            help="Docker socket or hostname where to deliver the image"
+            help="CPK machine or endpoint hostname where to deliver the image once built"
         )
         parser.add_argument(
             "--docs",
@@ -114,7 +114,7 @@ class CLIBuildCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(parsed: argparse.Namespace) -> bool:
+    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
         stime = time.time()
         parsed.workdir = os.path.abspath(parsed.workdir)
 
@@ -122,7 +122,7 @@ class CLIBuildCommand(AbstractCLICommand):
         project = CPKProject(parsed.workdir, parsed=parsed)
 
         # show info about project
-        CLIInfoCommand.execute(parsed)
+        CLIInfoCommand.execute(machine, parsed)
 
         # check if the git HEAD is detached
         if project.is_detached():
@@ -140,12 +140,8 @@ class CLIBuildCommand(AbstractCLICommand):
                 return False
             cpklogger.warning("Forced!")
 
-        # sanitize hostname
-        if parsed.machine is not None:
-            parsed.machine = sanitize_hostname(parsed.machine)
-
         # create docker client
-        docker = get_client(parsed.machine)
+        docker = machine.get_client()
 
         # get info about docker endpoint
         cpklogger.info("Retrieving info about Docker endpoint...")
@@ -170,11 +166,11 @@ class CLIBuildCommand(AbstractCLICommand):
         buildargs["labels"].update(project.build_labels())
         # - build-arg NCPUS
         buildargs['buildargs']['NCPUS'] = \
-            str(get_endpoint_ncpus(docker)) if parsed.ncpus is None else str(parsed.ncpus)
+            str(parsed.ncpus) if parsed.ncpus else machine.get_ncpus()
 
         # pick the right architecture if not set
         if parsed.arch is None:
-            parsed.arch = get_endpoint_architecture(parsed.machine)
+            parsed.arch = machine.get_architecture()
             cpklogger.info(f"Target architecture automatically set to {parsed.arch}.")
 
         # create defaults
@@ -211,7 +207,7 @@ class CLIBuildCommand(AbstractCLICommand):
                 # try to pull the same image so Docker can use it as cache source
                 cpklogger.info(f'Pulling image "{image}" to use as cache...')
                 try:
-                    pull_image(image, endpoint=docker)
+                    machine.pull_image(image)
                     is_present = True
                 except KeyboardInterrupt:
                     cpklogger.info("Aborting.")
@@ -338,10 +334,9 @@ class CLIBuildCommand(AbstractCLICommand):
             buildlog, historylog, extra_info=extra_info
         )
         # pull image (if the destination is different from the builder machine)
-        if parsed.destination and parsed.machine != parsed.destination:
-            _transfer_image(
-                origin=parsed.machine,
-                destination=parsed.destination,
+        if parsed.destination and machine.host != parsed.destination:
+            machine.transfer_image(
+                destination=get_machine(parsed.destination),
                 image=image,
                 image_size=final_image_size,
             )
@@ -349,7 +344,7 @@ class CLIBuildCommand(AbstractCLICommand):
         if parsed.push:
             # call command `push`
             from .push import CLIPushCommand
-            CLIPushCommand.execute(copy.deepcopy(parsed))
+            CLIPushCommand.execute(machine, copy.deepcopy(parsed))
 
         # perform remove (if needed)
         if parsed.rm:
@@ -357,23 +352,12 @@ class CLIBuildCommand(AbstractCLICommand):
             # noinspection PyBroadException
             try:
                 # call command `clean`
-                CLICleanCommand.execute(copy.deepcopy(parsed))
+                CLICleanCommand.execute(machine, copy.deepcopy(parsed))
             except BaseException:
                 cpklogger.warn(
                     "We had some issues cleaning up the image on '{:s}'".format(parsed.machine)
                     + ". Just a heads up!"
                 )
-
-
-def _transfer_image(origin, destination, image, image_size):
-    monitor_info = "" if which("pv") else " (install `pv` to see the progress)"
-    cpklogger.info(f'Transferring image "{image}": [{origin}] -> [{destination}]{monitor_info}...')
-    data_source = ["docker", "-H=%s" % origin, "save", image]
-    data_destination = ["docker", "-H=%s" % destination, "load"]
-    progress_monitor = ["|", "pv", "-cN", "image", "-s", image_size] if which("pv") else []
-    cmd = data_source + progress_monitor + data_destination
-    # TODO: re-enable this
-    # start_command_in_subprocess(cmd, nostdout=True)
 
 
 def _build_line(line):
@@ -391,5 +375,3 @@ def _build_line(line):
         line += "\n"
     # ---
     return line
-
-

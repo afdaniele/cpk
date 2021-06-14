@@ -1,7 +1,5 @@
 import argparse
 import os
-import sys
-import time
 from typing import Union
 
 from docker.errors import APIError
@@ -10,6 +8,7 @@ from .info import CLIInfoCommand
 from .. import AbstractCLICommand, cpklogger
 from ... import CPKProject
 from ...exceptions import CPKProjectPushException
+from ...types import Machine
 from ...utils.docker import get_client, DOCKER_INFO, get_endpoint_architecture
 from ...utils.misc import sanitize_hostname, human_size
 
@@ -36,15 +35,14 @@ class CLIPushCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(parsed: argparse.Namespace) -> bool:
-        stime = time.time()
+    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
         parsed.workdir = os.path.abspath(parsed.workdir)
 
         # get project
         project = CPKProject(parsed.workdir, parsed=parsed)
 
         # show info about project
-        CLIInfoCommand.execute(parsed)
+        CLIInfoCommand.execute(machine, parsed)
 
         # check if the git HEAD is detached
         if project.is_detached():
@@ -62,12 +60,8 @@ class CLIPushCommand(AbstractCLICommand):
                 return False
             cpklogger.warning("Forced!")
 
-        # sanitize hostname
-        if parsed.machine is not None:
-            parsed.machine = sanitize_hostname(parsed.machine)
-
         # create docker client
-        docker = get_client(parsed.machine)
+        docker = machine.get_client()
 
         # get info about docker endpoint
         cpklogger.info("Retrieving info about Docker endpoint...")
@@ -80,7 +74,7 @@ class CLIPushCommand(AbstractCLICommand):
 
         # pick the right architecture if not set
         if parsed.arch is None:
-            parsed.arch = get_endpoint_architecture(parsed.machine)
+            parsed.arch = machine.get_architecture()
             cpklogger.info(f"Target architecture automatically set to {parsed.arch}.")
 
         # create defaults

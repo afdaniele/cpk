@@ -6,6 +6,7 @@ from typing import Union
 
 from cpk.cli.logger import cpklogger
 from cpk.constants import CANONICAL_ARCH
+from cpk.types import Machine
 from cpk.utils.docker import get_client, get_endpoint_architecture
 
 
@@ -94,7 +95,7 @@ class AbstractCLICommand(ABC):
 
     @staticmethod
     @abstractmethod
-    def execute(parsed: argparse.Namespace) -> bool:
+    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
         pass
 
 

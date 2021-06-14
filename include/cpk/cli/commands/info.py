@@ -7,7 +7,7 @@ from cpk import CPKProject
 
 from .. import AbstractCLICommand
 from ..logger import cpklogger
-
+from ...types import Machine
 
 PROJECT_INFO = """
 {project}
@@ -35,7 +35,7 @@ class CLIInfoCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(parsed: argparse.Namespace) -> bool:
+    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
         parsed.workdir = os.path.abspath(parsed.workdir)
         cpklogger.info("Project workspace: {}".format(parsed.workdir))
         # get the project

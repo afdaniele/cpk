@@ -10,6 +10,7 @@ from cpk.cli.commands.run import CLIRunCommand
 from cpk.cli.commands.clean import CLICleanCommand
 from cpk.cli.commands.push import CLIPushCommand
 from cpk.cli.commands.decorate import CLIDecorateCommand
+from cpk.utils.machine import get_machine
 
 _supported_commands = {
     'info': CLIInfoCommand,
@@ -39,9 +40,13 @@ def run():
     command = _supported_commands[command_name]
     # let the command parse its arguments
     parsed = command.parse_arguments(remaining)
+    # get machine
+    machine = get_machine(parsed)
+    # avoid commands using `parsed.machine`
+    parsed.machine = None
     # execute command
     try:
-        command.execute(parsed)
+        command.execute(machine, parsed)
     except CPKException as e:
         cpklogger.error(str(e))
 

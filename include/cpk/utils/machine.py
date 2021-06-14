@@ -1,9 +1,10 @@
 import argparse
-from typing import Optional, List
+import os
+from typing import List
 
-from docker import DockerClient
+from cpk.utils.misc import sanitize_hostname
 
-from cpk.machine import UnixSocketMachine, Machine, TCPMachine
+from cpk.machine import Machine, FromEnvMachine, TCPMachine
 
 
 def load_machines() -> List[Machine]:
@@ -13,7 +14,7 @@ def load_machines() -> List[Machine]:
 
 def get_machine(parsed: argparse.Namespace) -> Machine:
     if parsed.machine is None:
-        return UnixSocketMachine("default")
+        return FromEnvMachine()
     # get all CPK machines
     cpk_machines = load_machines()
     # match machine names against given string
@@ -21,6 +22,6 @@ def get_machine(parsed: argparse.Namespace) -> Machine:
         if machine.name == str(parsed.machine).strip():
             return machine
     # assume it is a hostname or IP address
-    return TCPMachine(parsed.machine, parsed.machine)
+    return TCPMachine(parsed.machine, sanitize_hostname(parsed.machine))
 
 
