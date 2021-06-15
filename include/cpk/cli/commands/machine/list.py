@@ -26,7 +26,6 @@ class CLIMachineListCommand(AbstractCLICommand):
         # print table
         cpklogger.info(f"Number of machines found: {len(machines)}")
         table_fmt = "   |    {:<8} {:<15} {:<10} {:<1}"
-        # print(table_fmt.format("", "", "", ""))
         print("-" * (8 + 15 + 10 + 40))
         print(table_fmt.format('ID', 'NAME', 'TYPE', 'ENDPOINT'))
         for i, (name, machine) in enumerate(machines.items()):
