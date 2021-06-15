@@ -4,6 +4,7 @@ from typing import Optional, Dict, Type
 from cpk.cli import AbstractCLICommand
 from cpk.cli.commands.machine.create import CLIMachineCreateCommand
 from cpk.cli.commands.machine.info import CLIMachineInfoCommand
+from cpk.cli.commands.machine.list import CLIMachineListCommand
 from cpk.cli.commands.machine.remove import CLIMachineRemoveCommand
 from cpk.types import Machine, Arguments
 
@@ -11,6 +12,9 @@ _supported_subcommands: Dict[str, Type[AbstractCLICommand]] = {
     "create": CLIMachineCreateCommand,
     "info": CLIMachineInfoCommand,
     "rm": CLIMachineRemoveCommand,
+    "remove": CLIMachineRemoveCommand,
+    "ls": CLIMachineListCommand,
+    "list": CLIMachineListCommand,
 }
 
 

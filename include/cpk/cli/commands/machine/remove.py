@@ -9,7 +9,7 @@ from cpk.utils.misc import ask_confirmation
 
 class CLIMachineRemoveCommand(AbstractCLICommand):
 
-    KEY = 'machine rm'
+    KEY = 'machine remove'
 
     @staticmethod
     def parser(parent: Optional[argparse.ArgumentParser] = None,
