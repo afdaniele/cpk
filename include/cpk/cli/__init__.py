@@ -2,12 +2,11 @@ import argparse
 import logging
 import os
 from abc import abstractmethod, ABC
-from typing import Union
+from typing import Optional, Type
 
 from cpk.cli.logger import cpklogger
 from cpk.constants import CANONICAL_ARCH
-from cpk.types import Machine
-from cpk.utils.docker import get_client, get_endpoint_architecture
+from cpk.types import Machine, Arguments
 
 
 class AbstractCLICommand(ABC):
@@ -63,34 +62,16 @@ class AbstractCLICommand(ABC):
         return parser
 
     @classmethod
-    def get_parser(cls) -> argparse.ArgumentParser:
+    def get_parser(cls, args: Arguments) -> argparse.ArgumentParser:
         common_parser = cls.common_parser()
-        command_parser = cls.parser(common_parser)
+        command_parser = cls.parser(common_parser, args)
         command_parser.prog = f'cpk {cls.KEY}'
         return command_parser
 
-    @classmethod
-    def parse_arguments(cls, args) -> argparse.Namespace:
-        parser = cls.get_parser()
-        parsed = parser.parse_args(args)
-        # sanitize workdir
-        parsed.workdir = os.path.abspath(parsed.workdir)
-        # pick right value of `arch` given endpoint
-        if parsed.arch is None:
-            cpklogger.info("Parameter `arch` not given, will resolve it from the endpoint.")
-            docker = get_client(endpoint=parsed.machine)
-            parsed.arch = get_endpoint_architecture(docker)
-            cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
-
-        # enable debug
-        if parsed.debug:
-            cpklogger.setLevel(logging.DEBUG)
-        # ---
-        return parsed
-
     @staticmethod
     @abstractmethod
-    def parser(parent: Union[None, argparse.ArgumentParser] = None) -> argparse.ArgumentParser:
+    def parser(parent: Optional[argparse.ArgumentParser] = None,
+               args: Optional[Arguments] = None) -> argparse.ArgumentParser:
         pass
 
     @staticmethod
@@ -99,6 +80,23 @@ class AbstractCLICommand(ABC):
         pass
 
 
+class CPKCLI:
+
+    @staticmethod
+    def parse_arguments(command: Type[AbstractCLICommand], args: Arguments) -> argparse.Namespace:
+        parser = command.get_parser(args)
+        parsed = parser.parse_args(args)
+        # sanitize workdir
+        parsed.workdir = os.path.abspath(parsed.workdir)
+        # enable debug
+        if parsed.debug:
+            cpklogger.setLevel(logging.DEBUG)
+        # ---
+        return parsed
+
+
 __all__ = [
-    "AbstractCLICommand"
+    "AbstractCLICommand",
+    "CPKCLI",
+    "cpklogger"
 ]

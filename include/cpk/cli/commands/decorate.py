@@ -3,12 +3,12 @@ import os
 import re
 import subprocess
 from shutil import which
-from typing import Union, Callable
+from typing import Optional, Callable
 
 import cpk
 from .. import AbstractCLICommand
 from ..logger import cpklogger
-from ...types import DockerImageName, Machine
+from ...types import DockerImageName, Machine, Arguments
 
 
 class CLIDecorateCommand(AbstractCLICommand):
@@ -22,7 +22,8 @@ class CLIDecorateCommand(AbstractCLICommand):
     EMAIL_ADDRESS_REGEX = r"^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$"
 
     @staticmethod
-    def parser(parent: Union[None, argparse.ArgumentParser] = None) -> argparse.ArgumentParser:
+    def parser(parent: Optional[argparse.ArgumentParser] = None,
+               args: Optional[Arguments] = None) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(parents=[parent])
         # ---
         parser.add_argument(
@@ -57,6 +58,11 @@ class CLIDecorateCommand(AbstractCLICommand):
 
     @staticmethod
     def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
+        # pick right value of `arch` given endpoint
+        if parsed.arch is None:
+            cpklogger.info("Parameter `arch` not given, will resolve it from the endpoint.")
+            parsed.arch = machine.get_architecture()
+            cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
         # parse `input`
         input_image = DockerImageName.from_image_name(parsed.input[0])
         cpklogger.debug(f"+ Input Image:\n{str(input_image)}")

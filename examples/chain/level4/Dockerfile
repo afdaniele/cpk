@@ -9,7 +9,7 @@ ARG MAINTAINER
 # ==> Do not change the code below this line
 ARG BASE_REGISTRY=docker.io
 ARG BASE_ORGANIZATION=cpk-examples
-ARG BASE_REPOSITORY=level4
+ARG BASE_REPOSITORY=level3
 ARG BASE_TAG=latest
 
 # define base image

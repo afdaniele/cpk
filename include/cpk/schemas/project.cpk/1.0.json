@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "$id": "cpk-template-schema-1-0",
+    "$id": "cpk-project-schema-1-0",
     "title": "",
     "type": "object",
     "properties": {

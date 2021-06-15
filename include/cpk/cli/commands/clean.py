@@ -1,8 +1,8 @@
 import argparse
-from typing import Union
+from typing import Optional
 
 from .. import AbstractCLICommand
-from ...types import Machine
+from ...types import Machine, Arguments
 
 
 class CLICleanCommand(AbstractCLICommand):
@@ -10,7 +10,8 @@ class CLICleanCommand(AbstractCLICommand):
     KEY = 'clean'
 
     @staticmethod
-    def parser(parent: Union[None, argparse.ArgumentParser] = None) -> argparse.ArgumentParser:
+    def parser(parent: Optional[argparse.ArgumentParser] = None,
+               args: Optional[Arguments] = None) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(parents=[parent])
         return parser
 

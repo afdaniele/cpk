@@ -1,6 +1,6 @@
 import argparse
 import os
-from typing import Union
+from typing import Optional
 
 from docker.errors import APIError
 
@@ -8,9 +8,9 @@ from .info import CLIInfoCommand
 from .. import AbstractCLICommand, cpklogger
 from ... import CPKProject
 from ...exceptions import CPKProjectPushException
-from ...types import Machine
-from ...utils.docker import get_client, DOCKER_INFO, get_endpoint_architecture
-from ...utils.misc import sanitize_hostname, human_size
+from ...types import Machine, Arguments
+from ...utils.docker import DOCKER_INFO
+from ...utils.misc import human_size
 
 
 class CLIPushCommand(AbstractCLICommand):
@@ -18,7 +18,8 @@ class CLIPushCommand(AbstractCLICommand):
     KEY = 'push'
 
     @staticmethod
-    def parser(parent: Union[None, argparse.ArgumentParser] = None) -> argparse.ArgumentParser:
+    def parser(parent: Optional[argparse.ArgumentParser] = None,
+               args: Optional[Arguments] = None) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(parents=[parent])
         parser.add_argument(
             "--rm",
@@ -60,6 +61,12 @@ class CLIPushCommand(AbstractCLICommand):
                 return False
             cpklogger.warning("Forced!")
 
+        # pick right value of `arch` given endpoint
+        if parsed.arch is None:
+            cpklogger.info("Parameter `arch` not given, will resolve it from the endpoint.")
+            parsed.arch = machine.get_architecture()
+            cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
+
         # create docker client
         docker = machine.get_client()
 
@@ -71,11 +78,6 @@ class CLIPushCommand(AbstractCLICommand):
             return False
         epoint["MemTotal"] = human_size(epoint["MemTotal"])
         cpklogger.print(DOCKER_INFO.format(**epoint))
-
-        # pick the right architecture if not set
-        if parsed.arch is None:
-            parsed.arch = machine.get_architecture()
-            cpklogger.info(f"Target architecture automatically set to {parsed.arch}.")
 
         # create defaults
         image = project.image(parsed.arch)

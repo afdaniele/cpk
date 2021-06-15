@@ -5,7 +5,7 @@ import os
 import re
 import json
 from pathlib import Path
-from typing import Any, Dict, Union, List
+from typing import Any, Dict, Union, List, Optional
 
 import jsonschema
 import requests
@@ -18,10 +18,9 @@ from .constants import DOCKERHUB_API_URL
 from .exceptions import NotACPKProjectException, InvalidCPKProjectFile, \
     CPKProjectSchemaNotSupported, CPKMissingResourceException
 from .schemas import get_project_schema
-from .types import CPKProjectInfo, GitRepository, CPKTemplateInfo, CPKFileMapping
+from .types import CPKProjectInfo, GitRepository, CPKTemplateInfo, CPKFileMapping, Machine
 from .utils.git import get_repo_info
 from .utils.misc import assert_canonical_arch, parse_configurations, cpk_label
-from .utils import docker
 
 
 class CPKProject:
@@ -69,11 +68,11 @@ class CPKProject:
         return self._from_adapters("organization")
 
     @property
-    def description(self) -> Union[None, str]:
+    def description(self) -> Optional[str]:
         return self._from_adapters("description")
 
     @property
-    def maintainer(self) -> Union[None, str]:
+    def maintainer(self) -> Optional[str]:
         return self._from_adapters("maintainer")
 
     @property
@@ -89,7 +88,7 @@ class CPKProject:
         return self._repo
 
     @property
-    def url(self) -> Union[None, str]:
+    def url(self) -> Optional[str]:
         return self._from_adapters("url")
 
     @property
@@ -217,20 +216,18 @@ class CPKProject:
         launchers = [Path(f).stem for f in files if os.access(f, os.X_OK) or _has_shebang(f)]
         return launchers
 
-    def image_metadata(self, endpoint, arch: str):
-        client = docker.get_client(endpoint)
+    def image_metadata(self, machine: Machine, arch: str):
         image_name = self.image(arch)
         try:
-            image = client.images.get(image_name)
+            image = machine.get_client().images.get(image_name)
             return image.attrs
         except (APIError, ImageNotFound):
             return None
 
-    def image_labels(self, endpoint, arch: str):
-        client = docker.get_client(endpoint)
+    def image_labels(self, machine: Machine, arch: str):
         image_name = self.image(arch)
         try:
-            image = client.images.get(image_name)
+            image = machine.get_client().images.get(image_name)
             return image.labels
         except (APIError, ImageNotFound):
             return None

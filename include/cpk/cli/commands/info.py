@@ -1,13 +1,13 @@
 import os
 import argparse
 import termcolor as tc
-from typing import Union
+from typing import Optional
 
 from cpk import CPKProject
 
 from .. import AbstractCLICommand
 from ..logger import cpklogger
-from ...types import Machine
+from ...types import Machine, Arguments
 
 PROJECT_INFO = """
 {project}
@@ -30,7 +30,8 @@ class CLIInfoCommand(AbstractCLICommand):
     KEY = 'info'
 
     @staticmethod
-    def parser(parent: Union[None, argparse.ArgumentParser] = None) -> argparse.ArgumentParser:
+    def parser(parent: Optional[argparse.ArgumentParser] = None,
+               args: Optional[Arguments] = None) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(parents=[parent])
         return parser
 

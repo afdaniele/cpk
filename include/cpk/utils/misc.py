@@ -1,6 +1,9 @@
 import ipaddress
+import logging
+import os
 import subprocess
-from typing import Union
+from pathlib import Path
+from typing import Union, Optional
 
 import docker
 import yaml
@@ -108,3 +111,78 @@ def human_time(time_secs: Union[int, float], compact: bool = False):
         parts.append("{}{}".format(minutes, label("minutes")))
     parts.append("{}{}".format(seconds, label("seconds")))
     return ", ".join(parts)
+
+
+def configure_ssh_for_cpk(logger: Optional[logging.Logger] = None):
+    from cpk import cpkconfig
+    user_home = Path.home()
+    # create .cpk/ssh pool directory if it does not exist
+    cpk_ssh_pool_dir = os.path.join(cpkconfig.path, "ssh")
+    if logger:
+        logger.debug(f"Creating directory '{cpk_ssh_pool_dir}'...")
+        if os.path.exists(cpk_ssh_pool_dir):
+            logger.debug(f"Directory '{cpk_ssh_pool_dir}' already exists, skipping.")
+    os.makedirs(cpk_ssh_pool_dir, mode=0o700, exist_ok=True)
+    # create .ssh dir if it does not exist
+    ssh_fpath = os.path.join(user_home, ".ssh")
+    if logger:
+        logger.debug(f"Creating directory '{ssh_fpath}'...")
+        if os.path.exists(ssh_fpath):
+            logger.debug(f"Directory '{ssh_fpath}' already exists, skipping.")
+    os.makedirs(ssh_fpath, mode=0o700, exist_ok=True)
+    # read config file
+    ssh_config_fpath = os.path.join(ssh_fpath, "config")
+    ssh_config = []
+    if os.path.isfile(ssh_config_fpath):
+        if logger:
+            logger.debug(f"Reading SSH configuration file '{ssh_config_fpath}'...")
+        with open(ssh_config_fpath, "rt") as fin:
+            ssh_config = fin.readlines()
+    else:
+        if logger:
+            logger.debug(f"SSH configuration file '{ssh_config_fpath}' not found. Creating one...")
+    # check if it is already configured
+    found = False
+    include_line = f"Include {os.path.join(cpk_ssh_pool_dir, '*')}"
+    for line in ssh_config:
+        if line.strip() == include_line:
+            found = True
+    if found:
+        if logger:
+            logger.debug(f"User SSH environment already configured for CPK.")
+        return
+    # add Include statement to the beginning of the file
+    ssh_config = [
+        "# SSH configuration for cpk (https://github.com/afdaniele/cpk)\n",
+        f"{include_line}\n\n\n"
+    ] + ssh_config
+    # write ssh config file back to disk
+    with open(ssh_config_fpath, "wt") as fout:
+        if logger:
+            logger.debug(f"Writing to SSH configuration file '{ssh_config_fpath}'...")
+        fout.writelines(ssh_config)
+        if logger:
+            logger.debug(f"SSH configuration file '{ssh_config_fpath}' configured for CPK.")
+
+
+def ask_confirmation(logger, message, default="y", question="Do you confirm?", choices=None):
+    binary_question = False
+    if choices is None:
+        choices = {"y": "Yes", "n": "No"}
+        binary_question = True
+    choices_str = " ({})".format(", ".join([f"{k}={v}" for k, v in choices.items()]))
+    default_str = f" [{default}]" if default else ""
+    while True:
+        logger.warn(f"{message.rstrip('.')}.")
+        r = input(f"{question}{choices_str}{default_str}: ")
+        if r.strip() == "":
+            r = default
+        r = r.strip().lower()
+        if binary_question:
+            if r in ["y", "yes", "yup", "yep", "si", "aye"]:
+                return True
+            elif r in ["n", "no", "nope", "nay"]:
+                return False
+        else:
+            if r in choices:
+                return r

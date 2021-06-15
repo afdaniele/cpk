@@ -1,23 +1,25 @@
 import abc
 import copy
-import os
+import dataclasses
 import json
+import logging
+import os
 from enum import Enum
+from shutil import rmtree
+from typing import List, Dict, Optional
 
 import jsonschema
-from cpk.utils.progress_bar import ProgressBar
 from docker import DockerClient
 
-from .constants import CANONICAL_ARCH, CPK_CONFIG_DIR
+from cpk.utils.progress_bar import ProgressBar
+from .constants import CANONICAL_ARCH
 from .exceptions import \
     NotACPKProjectException, \
     InvalidCPKTemplateFile, InvalidCPKTemplate, \
     CPKTemplateSchemaNotSupported, CPKException
 from .schemas import get_template_schema
-import dataclasses
-from typing import List, Dict, Optional, Union
 
-from sshconf import empty_ssh_config_file, read_ssh_config, SshConfig
+Arguments = List[str]
 
 
 @dataclasses.dataclass
@@ -280,24 +282,60 @@ class CPKTemplateInfo:
         return CPKTemplateInfo.from_template_dict(data)
 
 
-@abc.ABCMeta
-class Machine:
+class Machine(abc.ABC):
+    type: str
 
-    def __init__(self, name: str, host: Optional[str] = None):
+    def __init__(self, name: str, base_url: Optional[str] = None,
+                 configuration: Optional[Dict] = None):
         self._name = name
-        self._host = host
+        self._base_url = base_url
+        self._configuration = configuration or {}
 
     @property
     def name(self) -> str:
         return self._name
 
     @property
-    def host(self) -> Optional[str]:
-        return self._host
+    def base_url(self) -> Optional[str]:
+        return self._base_url
 
     @abc.abstractmethod
     def get_client(self) -> DockerClient:
         raise NotImplementedError("Method 'get_client' needs to be implemented by child class")
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def save(self, logger: Optional[logging.Logger] = None):
+        from . import cpkconfig
+        path = os.path.join(cpkconfig.path, "machines", self.name)
+        # make directory
+        if logger:
+            logger.debug(f"Creating directory '{path}'")
+        os.makedirs(path, mode=0o700, exist_ok=True)
+        # dump config.json
+        cfg_fpath = os.path.join(path, "config.json")
+        if logger:
+            logger.debug(f"Creating machine descriptor file '{cfg_fpath}'")
+        with open(cfg_fpath, "wt") as fout:
+            json.dump({
+                "version": "1.0",
+                "type": self.type,
+                "description": "",
+                "configuration": self._configuration
+            }, fout, indent=4, sort_keys=True)
+        os.chmod(cfg_fpath, 0o600)
+
+    def remove(self, logger: Optional[logging.Logger] = None):
+        from . import cpkconfig
+        path = os.path.join(cpkconfig.path, "machines", self.name)
+        if logger:
+            logger.debug(f"Removing machine directory '{path}'")
+        if os.path.exists(path):
+            rmtree(path)
 
     def get_architecture(self) -> str:
         client = self.get_client()
@@ -359,53 +397,16 @@ class Machine:
         if progress:
             pbar.done()
 
-    def transfer_image(self, destination: 'Machine', image, image_size):
-        # TODO: re-implement this using in-Python sockets
-        # monitor_info = "" if which("pv") else " (install `pv` to see the progress)"
-        # cpklogger.info(f'Transferring image "{image}": [{origin}] -> [{destination}]{monitor_info}...')
-        # data_source = ["docker", "-H=%s" % origin, "save", image]
-        # data_destination = ["docker", "-H=%s" % destination, "load"]
-        # progress_monitor = ["|", "pv", "-cN", "image", "-s", image_size] if which("pv") else []
-        # cmd = data_source + progress_monitor + data_destination
-        # TODO: re-enable this
-        # start_command_in_subprocess(cmd, nostdout=True)
-        pass
-
-
-@dataclasses.dataclass
-class CPKSSHKey:
-    name: str
-    public_key_path: str
-    private_key_path: str
-
-
-@dataclasses.dataclass
-class CPKSSHConfig:
-    keys: List[CPKSSHKey]
-    config: SshConfig
-
-    @staticmethod
-    def from_disk(path: str = CPK_CONFIG_DIR) -> 'CPKSSHConfig':
-        config_fpath = os.path.join(path, "ssh", "config")
-        keys_fpath = os.path.join(path, "ssh", "keys")
-        if os.path.isfile(config_fpath):
-            # read config file from disk
-            ssh_config = read_ssh_config(config_fpath)
-        else:
-            # create empty config
-            ssh_config = SshConfig([empty_ssh_config_file()])
-        # TODO: read list of keys
-        # pack everything in a CPKSSHConfig object
-        return CPKSSHConfig(
-            keys=[],
-            config=ssh_config
-        )
+    def __str__(self):
+        return """
+Machine:
+    Type:\t{}
+    Name:\t{}
+    URL:\t{}
+""".format(type(self).__name__, self.name, self.base_url)
 
 
 @dataclasses.dataclass
 class CPKConfiguration:
     path: str
-    machines: List[Machine]
-    ssh: CPKSSHConfig
-
-
+    machines: Dict[str, Machine]

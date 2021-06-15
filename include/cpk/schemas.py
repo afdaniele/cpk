@@ -23,7 +23,13 @@ def get_template_schema(schema: str) -> dict:
     return _get_schema(schema_fpath)
 
 
+def get_machine_schema(schema: str) -> dict:
+    schema_fpath = os.path.join(_SCHEMAS_DIR, "machine", f"{schema}.json")
+    return _get_schema(schema_fpath)
+
+
 __all__ = [
     "get_project_schema",
-    "get_template_schema"
+    "get_template_schema",
+    "get_machine_schema"
 ]

@@ -1,23 +1,26 @@
 import os
 import re
-from typing import Union
+from typing import Optional
 
 from cpk.utils.misc import run_cmd
 from cpk.types import GitRepositoryOrigin, GitRepositoryIndex, GitRepositoryVersion, GitRepository
 
 
-def get_repo_info(path: str) -> Union[None, GitRepository]:
+def get_repo_info(path: str) -> Optional[GitRepository]:
     path = os.path.join(path, '.git')
     if not os.path.exists(path):
         return GitRepository.default()
     # ---
     # get repo info
     # - sha
-    sha = run_cmd(["git", "--git-dir", f'"{path}"', "rev-parse", "HEAD"])[0]
+    sha = run_cmd(["git", "--git-dir", f'"{path}"',
+                   "rev-parse", "HEAD"])[0]
     # - branch
-    branch = run_cmd(["git", "--git-dir", f'"{path}"', "rev-parse", "--abbrev-ref", "HEAD"])[0]
+    branch = run_cmd(["git", "--git-dir", f'"{path}"',
+                      "rev-parse", "--abbrev-ref", "HEAD"])[0]
     # - remote
-    origin_url = run_cmd(["git", "--git-dir", f'"{path}"', "config", "--get", "remote.origin.url"])[0]
+    origin_url = run_cmd(["git", "--git-dir", f'"{path}"',
+                          "config", "--get", "remote.origin.url"])[0]
     if origin_url.endswith(".git"):
         origin_url = origin_url[:-4]
     if origin_url.endswith("/"):
@@ -25,7 +28,8 @@ def get_repo_info(path: str) -> Union[None, GitRepository]:
     repo = origin_url.split("/")[-1]
     # - info about current git INDEX
     nmodified = len(
-        run_cmd(["git", "--git-dir", f'"{path}"', "status", "--porcelain", "--untracked-files=no"]))
+        run_cmd(["git", "--git-dir", f'"{path}"',
+                 "status", "--porcelain", "--untracked-files=no"]))
     nadded = len(run_cmd(["git", "--git-dir", f'"{path}"', "status", "--porcelain"]))
     clean = abs(nmodified) + abs(nadded) == 0
     # - head/closest git tag
@@ -78,7 +82,7 @@ def remote_url_to_https(remote_url: str) -> str:
     return remote_url
 
 
-def remote_url_to_organization(remote_url: str) -> Union[None, str]:
+def remote_url_to_organization(remote_url: str) -> Optional[str]:
     remote_url = remote_url_to_https(remote_url)
     https_pattern = "http[s]?://[^/]+/([^/]+)/.+"
     res = re.search(https_pattern, remote_url, re.IGNORECASE)

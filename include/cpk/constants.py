@@ -27,7 +27,7 @@ BUILD_COMPATIBILITY_MAP = {
 
 CONTAINER_LABEL_DOMAIN = "cpk.label"
 
-CPK_CONFIG_DIR = os.path.join(str(Path.home()), ".cpk")
+CPK_CONFIG_DIR = os.path.abspath(os.path.join(str(Path.home()), ".cpk"))
 
 DOCKERHUB_API_URL = {
     "token": "https://auth.docker.io/token?scope=repository:{image}:pull&service=registry.docker.io",

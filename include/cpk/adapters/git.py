@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional
 
 from .generic import ProjectVersion
 from .null import NullAdapter
@@ -34,6 +34,6 @@ class GitRepositoryAdapter(NullAdapter):
         )
 
     @property
-    def maintainer(self) -> Union[None, str]:
+    def maintainer(self) -> Optional[str]:
         # TODO: compile maintainer in the form "First Last (Email)" from git
         return None

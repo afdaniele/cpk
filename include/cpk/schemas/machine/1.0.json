@@ -1,0 +1,111 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "cpk-machine-schema-1-0",
+    "title": "",
+    "type": "object",
+    "properties": {
+        "version": {
+            "type": "string",
+            "const": "1.0"
+        },
+        "type": {
+            "type": "string",
+            "enum": [
+                "ssh",
+                "tcp",
+                "socket"
+            ]
+        },
+        "configuration": {
+            "type": "object"
+        }
+    },
+    "required": ["version", "type", "configuration"],
+    "patternProperties": {
+        "description": {
+            "type": "string"
+        }
+    },
+    "allOf": [
+        {
+            "if": {
+                "properties": {
+                    "type": {
+                        "const": "ssh"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "configuration": {
+                        "type": "object",
+                        "properties": {
+                            "user": {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            "host": {
+                                "type": "string",
+                                "format": "hostname",
+                                "minLength": 1
+                            }
+                        },
+                        "required": ["user", "host"],
+                        "patternProperties": {
+                            "port": {
+                                "type": ["null", "integer"]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "type": {
+                        "const": "tcp"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "configuration": {
+                        "type": "object",
+                        "properties": {
+                            "host": {
+                                "type": "string",
+                                "format": "hostname",
+                                "minLength": 1
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "type": {
+                        "const": "socket"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "configuration": {
+                        "type": "object",
+                        "properties": {
+                            "host": {
+                                "type": "string",
+                                "format": "uri",
+                                "minLength": 1
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ],
+    "additionalProperties": false
+}

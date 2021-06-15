@@ -1,5 +1,4 @@
 import unittest
-import cpk
 
 
 class TestArgparse(unittest.TestCase):

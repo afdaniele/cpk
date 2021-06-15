@@ -75,7 +75,8 @@ setup(
         'jsonschema',
         'termcolor',
         'pyyaml',
-        'sshconf'
+        'sshconf',
+        'cryptography'
     ],
     scripts=[
         'include/cpk/bin/cpk'

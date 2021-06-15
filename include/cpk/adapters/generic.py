@@ -1,15 +1,15 @@
 import getpass
 import dataclasses
 import os
-from typing import Union
+from typing import Optional
 
 
 @dataclasses.dataclass
 class ProjectVersion:
     tag: str
-    head: Union[None, str]
-    closest: Union[None, str]
-    sha: Union[None, str]
+    head: Optional[str]
+    closest: Optional[str]
+    sha: Optional[str]
 
 
 class GenericAdapter:
@@ -35,7 +35,7 @@ class GenericAdapter:
         return getpass.getuser()
 
     @property
-    def description(self) -> Union[None, str]:
+    def description(self) -> Optional[str]:
         return None
 
     @property
@@ -52,7 +52,7 @@ class GenericAdapter:
         return getpass.getuser()
 
     @property
-    def url(self) -> Union[None, str]:
+    def url(self) -> Optional[str]:
         return None
 
     def __str__(self) -> str:

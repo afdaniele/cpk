@@ -2,19 +2,18 @@ import argparse
 import os
 import shutil
 import subprocess
-from typing import Union
+from typing import Optional
 
 from docker.errors import ImageNotFound
 
 from cpk import CPKProject
-from cpk.utils.docker import get_client, DOCKER_INFO, \
-    get_endpoint_architecture, pull_image
-from cpk.utils.misc import sanitize_hostname, human_size, configure_binfmt
+from cpk.utils.docker import DOCKER_INFO
+from cpk.utils.misc import human_size, configure_binfmt
 from .info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
 from ...exceptions import NotACPKProjectException
-from ...types import CPKFileMappingTrigger, Machine
+from ...types import CPKFileMappingTrigger, Machine, Arguments
 
 DEFAULT_NETWORK_MODE = "bridge"
 SUPPORTED_SUBCOMMANDS = [
@@ -28,7 +27,8 @@ class CLIRunCommand(AbstractCLICommand):
     KEY = 'run'
 
     @staticmethod
-    def parser(parent: Union[None, argparse.ArgumentParser] = None) -> argparse.ArgumentParser:
+    def parser(parent: Optional[argparse.ArgumentParser] = None,
+               args: Optional[Arguments] = None) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(parents=[parent])
         parser.add_argument(
             "-n",
@@ -178,6 +178,12 @@ class CLIRunCommand(AbstractCLICommand):
                 return False
             cpklogger.warning("Forced!")
 
+        # pick right value of `arch` given endpoint
+        if parsed.arch is None:
+            cpklogger.info("Parameter `arch` not given, will resolve it from the endpoint.")
+            parsed.arch = machine.get_architecture()
+            cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
+
         # create docker client
         docker = machine.get_client()
 
@@ -295,7 +301,7 @@ class CLIRunCommand(AbstractCLICommand):
                 cpklogger.info("Found an image with the same name. Use --force-pull to pull again")
             else:
                 cpklogger.info('Pulling image "%s"...' % image)
-                pull_image(image, docker)
+                machine.pull_image(image)
 
         # cmd option
         if parsed.cmd and parsed.launcher:
@@ -315,8 +321,8 @@ class CLIRunCommand(AbstractCLICommand):
         # endpoint arguments
         docker_epoint_args = []
         # TODO: this should be using the Python SDK for Docker, not Docker CLI
-        if machine.host is not None:
-            docker_epoint_args += ["-H", machine.host]
+        if machine.base_url is not None:
+            docker_epoint_args += ["-H", machine.base_url]
 
         # docker arguments
         if not parsed.docker_args:

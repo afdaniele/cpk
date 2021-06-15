@@ -1,23 +1,22 @@
 import argparse
 import copy
+import datetime
 import json
-import os
 import sys
 import time
-import datetime
-from typing import Union
+from typing import Optional
 
-from termcolor import colored
 from docker.errors import ImageNotFound, APIError
+from termcolor import colored
 
+from cpk import CPKProject, cpkconfig
+from cpk.utils.docker import DOCKER_INFO, transfer_image
+from cpk.utils.misc import human_size, human_time, configure_binfmt
 from .info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
-from cpk import CPKProject
-from cpk.utils.docker import DOCKER_INFO
-from cpk.utils.misc import human_size, human_time, configure_binfmt
 from ...exceptions import CPKProjectBuildException
-from ...types import Machine
+from ...types import Machine, Arguments
 from ...utils.image_analyzer import EXTRA_INFO_SEPARATOR, ImageAnalyzer, SEPARATORS_LENGTH
 from ...utils.machine import get_machine
 
@@ -27,7 +26,8 @@ class CLIBuildCommand(AbstractCLICommand):
     KEY = 'build'
 
     @staticmethod
-    def parser(parent: Union[None, argparse.ArgumentParser] = None) -> argparse.ArgumentParser:
+    def parser(parent: Optional[argparse.ArgumentParser] = None,
+               args: Optional[Arguments] = None) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(parents=[parent])
         parser.add_argument(
             "--pull",
@@ -116,7 +116,6 @@ class CLIBuildCommand(AbstractCLICommand):
     @staticmethod
     def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
         stime = time.time()
-        parsed.workdir = os.path.abspath(parsed.workdir)
 
         # get project
         project = CPKProject(parsed.workdir, parsed=parsed)
@@ -139,6 +138,12 @@ class CLIBuildCommand(AbstractCLICommand):
             if not parsed.force:
                 return False
             cpklogger.warning("Forced!")
+
+        # pick right value of `arch` given endpoint
+        if parsed.arch is None:
+            cpklogger.info("Parameter `arch` not given, will resolve it from the endpoint.")
+            parsed.arch = machine.get_architecture()
+            cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
 
         # create docker client
         docker = machine.get_client()
@@ -166,7 +171,7 @@ class CLIBuildCommand(AbstractCLICommand):
         buildargs["labels"].update(project.build_labels())
         # - build-arg NCPUS
         buildargs['buildargs']['NCPUS'] = \
-            str(parsed.ncpus) if parsed.ncpus else machine.get_ncpus()
+            str(parsed.ncpus) if parsed.ncpus else str(machine.get_ncpus())
 
         # pick the right architecture if not set
         if parsed.arch is None:
@@ -334,9 +339,10 @@ class CLIBuildCommand(AbstractCLICommand):
             buildlog, historylog, extra_info=extra_info
         )
         # pull image (if the destination is different from the builder machine)
-        if parsed.destination and machine.host != parsed.destination:
-            machine.transfer_image(
-                destination=get_machine(parsed.destination),
+        if parsed.destination and machine.base_url != parsed.destination:
+            transfer_image(
+                origin=machine,
+                destination=get_machine(parsed.destination, cpkconfig.machines),
                 image=image,
                 image_size=final_image_size,
             )
