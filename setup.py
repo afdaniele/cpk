@@ -20,16 +20,26 @@ def get_version(filename):
     return version
 
 
-def get_decorator_files() -> List[str]:
-    this_file = os.path.abspath(__file__)
-    cpk_dir = os.path.join(os.path.dirname(this_file), "include", "cpk")
-    path = os.path.abspath(os.path.join(cpk_dir, "decorator"))
+def _get_all_files(parent: str, child: str) -> List[str]:
+    path = os.path.abspath(os.path.join(parent, child))
     hidden = glob.glob(os.path.join(path, ".**"), recursive=True)
     nonhidden = glob.glob(os.path.join(path, "**"), recursive=True)
     items = hidden + nonhidden
     files = filter(os.path.isfile, items)
-    files = list(map(lambda p: os.path.relpath(p, cpk_dir), files))
+    files = list(map(lambda p: os.path.relpath(p, parent), files))
     return files
+
+
+def get_decorator_files() -> List[str]:
+    this_file = os.path.abspath(__file__)
+    cpk_dir = os.path.join(os.path.dirname(this_file), "include", "cpk")
+    return _get_all_files(cpk_dir, "decorator")
+
+
+def get_skeleton_files() -> List[str]:
+    this_file = os.path.abspath(__file__)
+    cpk_dir = os.path.join(os.path.dirname(this_file), "include", "cpk")
+    return _get_all_files(cpk_dir, "skeleton")
 
 
 if sys.version_info < (3, 6):
@@ -47,9 +57,7 @@ setup(
         'cpk.cli.commands',
         'cpk.cli.commands.machine',
         'cpk.cli.commands.endpoint',
-        'cpk.schemas',
-        'cpk.utils',
-        'cpk.decorator'
+        'cpk.utils'
     ],
     package_dir={
         'cpk': 'include/cpk'
@@ -57,7 +65,8 @@ setup(
     package_data={
         "cpk": [
             "schemas/*/*.json",
-            *get_decorator_files()
+            *get_decorator_files(),
+            *get_skeleton_files()
         ],
     },
     version=lib_version,

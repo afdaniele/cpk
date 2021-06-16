@@ -1,0 +1,9 @@
+{
+    "schema": "1.0",
+    "template": null,
+    "name": "{name}",
+    "description": "{description}",
+    "organization": "{organization}",
+    "version": "0.0.0",
+    "maintainer": "{maintainer}"
+}
