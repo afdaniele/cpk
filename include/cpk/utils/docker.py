@@ -6,6 +6,7 @@ DEFAULT_REGISTRY = "docker.io"
 
 DOCKER_INFO = """
 Docker Endpoint:
+  Machine: {machine}
   Hostname: {Name}
   Operating System: {OperatingSystem}
   Kernel Version: {KernelVersion}

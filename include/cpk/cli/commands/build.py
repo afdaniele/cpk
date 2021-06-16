@@ -12,6 +12,7 @@ from termcolor import colored
 from cpk import CPKProject, cpkconfig
 from cpk.utils.docker import DOCKER_INFO, transfer_image
 from cpk.utils.misc import human_size, human_time, configure_binfmt
+from .endpoint import CLIEndpointInfoCommand
 from .info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
@@ -145,17 +146,11 @@ class CLIBuildCommand(AbstractCLICommand):
             parsed.arch = machine.get_architecture()
             cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
 
+        # get info about docker endpoint
+        CLIEndpointInfoCommand.execute(machine, parsed)
+
         # create docker client
         docker = machine.get_client()
-
-        # get info about docker endpoint
-        cpklogger.info("Retrieving info about Docker endpoint...")
-        epoint = docker.info()
-        if "ServerErrors" in epoint:
-            cpklogger.error("\n".join(epoint["ServerErrors"]))
-            return False
-        epoint["MemTotal"] = human_size(epoint["MemTotal"])
-        cpklogger.print(DOCKER_INFO.format(**epoint))
 
         # define build-args
         buildargs = {"buildargs": {}, "labels": {}}
@@ -243,6 +238,7 @@ class CLIBuildCommand(AbstractCLICommand):
                 local_sha = project.version.sha
                 # get remote image metadata
                 try:
+                    # TODO: parsed.machine is now NONE
                     labels = project.image_labels(parsed.machine, parsed.arch)
                     time_label = project.label("time")
                     sha_label = project.label("code.sha")
@@ -360,10 +356,7 @@ class CLIBuildCommand(AbstractCLICommand):
                 # call command `clean`
                 CLICleanCommand.execute(machine, copy.deepcopy(parsed))
             except BaseException:
-                cpklogger.warn(
-                    "We had some issues cleaning up the image on '{:s}'".format(parsed.machine)
-                    + ". Just a heads up!"
-                )
+                cpklogger.warn("We had some issues cleaning up the image. Just a heads up!")
 
 
 def _build_line(line):

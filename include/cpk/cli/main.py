@@ -15,6 +15,7 @@ from cpk.cli.commands.clean import CLICleanCommand
 from cpk.cli.commands.push import CLIPushCommand
 from cpk.cli.commands.decorate import CLIDecorateCommand
 from cpk.cli.commands.machine import CLIMachineCommand
+from cpk.cli.commands.endpoint import CLIEndpointCommand
 from cpk.utils.machine import get_machine
 
 _supported_commands = {
@@ -25,6 +26,7 @@ _supported_commands = {
     'push': CLIPushCommand,
     'decorate': CLIDecorateCommand,
     'machine': CLIMachineCommand,
+    'endpoint': CLIEndpointCommand,
 }
 
 

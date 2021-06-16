@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import subprocess
 import time
 from shutil import which
@@ -21,7 +22,7 @@ from cpk.utils.misc import configure_ssh_for_cpk
 class FromEnvMachine(Machine):
 
     def __init__(self):
-        super(FromEnvMachine, self).__init__("externally-set")
+        super(FromEnvMachine, self).__init__("from-environment")
 
     def get_client(self) -> DockerClient:
         return docker.from_env()
@@ -125,7 +126,7 @@ class SSHMachine(Machine):
                 logger.debug(f"Writing public key to '{private_key_fpath}'")
             fout.write(public_key)
         # create SSH configuration file
-        ssh_conf_fpath = os.path.join(path, "ssh.conf")
+        ssh_conf_fpath = os.path.join(path, "host.conf")
         config = empty_ssh_config_file()
         config.add(
             self.name,
@@ -150,3 +151,19 @@ class SSHMachine(Machine):
         if retcode == 0:
             return
         raise RuntimeError("RSA keys could not be copied to the destination machine.")
+
+    def __enter__(self):
+        from cpk import cpkconfig
+        # create SSH host configuration file in the SSH pool directory .cpk/ssh
+        cpk_ssh_pool_dir = os.path.join(cpkconfig.path, "ssh")
+        host_cfg_src_fpath = os.path.join(self.config_path, "host.conf")
+        host_cfg_dest_fpath = os.path.join(cpk_ssh_pool_dir, f"{self.name}.conf")
+        shutil.copy(host_cfg_src_fpath, host_cfg_dest_fpath)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        from cpk import cpkconfig
+        # remove SSH host configuration file from the SSH pool directory .cpk/ssh
+        cpk_ssh_pool_dir = os.path.join(cpkconfig.path, "ssh")
+        host_cfg_fpath = os.path.join(cpk_ssh_pool_dir, f"{self.name}.conf")
+        if os.path.exists(host_cfg_fpath) and os.path.isfile(host_cfg_fpath):
+            shutil.rmtree(host_cfg_fpath)

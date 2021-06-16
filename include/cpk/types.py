@@ -296,6 +296,11 @@ class Machine(abc.ABC):
         return self._name
 
     @property
+    def config_path(self) -> str:
+        from cpk import cpkconfig
+        return os.path.join(cpkconfig.path, "machines", self.name)
+
+    @property
     def base_url(self) -> Optional[str]:
         return self._base_url
 
