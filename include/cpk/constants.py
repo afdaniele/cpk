@@ -30,7 +30,8 @@ CONTAINER_LABEL_DOMAIN = "cpk.label"
 CPK_CONFIG_DIR = os.path.abspath(os.path.join(str(Path.home()), ".cpk"))
 
 DOCKERHUB_API_URL = {
-    "token": "https://auth.docker.io/token?scope=repository:{image}:pull&service=registry.docker.io",
+    "token": "https://auth.docker.io/token?scope=repository:{image}:pull&"
+             "service=registry.docker.io",
     "digest": "https://registry-1.docker.io/v2/{image}/manifests/{tag}",
     "inspect": "https://registry-1.docker.io/v2/{image}/blobs/{digest}",
 }

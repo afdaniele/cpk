@@ -1,10 +1,9 @@
-import os
 import argparse
-import termcolor as tc
 from typing import Optional
 
-from cpk import CPKProject
+import termcolor as tc
 
+from cpk import CPKProject
 from .. import AbstractCLICommand
 from ..logger import cpklogger
 from ...types import Machine, Arguments
@@ -37,13 +36,15 @@ class CLIInfoCommand(AbstractCLICommand):
 
     @staticmethod
     def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
-        parsed.workdir = os.path.abspath(parsed.workdir)
         cpklogger.info("Project workspace: {}".format(parsed.workdir))
+
         # get the project
         project = CPKProject(parsed.workdir)
+
         # index status
         index = tc.colored("Clean", "green") if project.is_clean() \
             else tc.colored("Dirty", "yellow")
+
         # show info about project
         info = {
             "project": tc.colored("Project:", "grey", "on_white"),
@@ -60,5 +61,6 @@ class CLIInfoCommand(AbstractCLICommand):
             "end": tc.colored("________", "grey", "on_white"),
         }
         cpklogger.print(PROJECT_INFO.format(**info))
+
         # ---
         return True

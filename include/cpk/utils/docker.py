@@ -20,7 +20,8 @@ Docker Endpoint:
 def transfer_image(origin: Machine, destination: Machine, image, image_size):
     # TODO: re-implement this using in-Python sockets
     # monitor_info = "" if which("pv") else " (install `pv` to see the progress)"
-    # cpklogger.info(f'Transferring image "{image}": [{origin}] -> [{destination}]{monitor_info}...')
+    # cpklogger.info(f'Transferring image "{image}": [{origin}] -> [{destination}]'
+    #                f'{monitor_info}...')
     # data_source = ["docker", "-H=%s" % origin, "save", image]
     # data_destination = ["docker", "-H=%s" % destination, "load"]
     # progress_monitor = ["|", "pv", "-cN", "image", "-s", image_size] if which("pv") else []

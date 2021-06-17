@@ -63,30 +63,38 @@ class CLIDecorateCommand(AbstractCLICommand):
             cpklogger.info("Parameter `arch` not given, will resolve it from the endpoint.")
             parsed.arch = machine.get_architecture()
             cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
+
         # parse `input`
         input_image = DockerImageName.from_image_name(parsed.input[0])
         cpklogger.debug(f"+ Input Image:\n{str(input_image)}")
+
         # parse `output`
         output_image = DockerImageName.from_image_name(parsed.output[0])
+
         # append arch to the end of the output image
         if output_image.arch is None:
             output_image.arch = parsed.arch
         cpklogger.debug(f"+ Output Image:\n{str(output_image)}")
+
         # make sure the `docker` CLI tool is installed
         docker_cli = which('docker')
         if docker_cli is None:
             cpklogger.error("The Docker CLI must be installed for this command to work.")
             return False
         cpklogger.debug(f"Docker CLI found at {docker_cli}")
+
         # find decorator project inside the `cpk` library
         cpk_dir = os.path.dirname(os.path.abspath(cpk.__file__))
         decorator_dir = os.path.join(cpk_dir, "decorator")
         dockerfile = os.path.join(decorator_dir, "Dockerfile")
+
         # compile maintainer string
         maintainer = f"{parsed.maintainer} ({parsed.email})" if parsed.email else parsed.maintainer
+
         # compile command
         cmd = [
             "docker", "build",
+            # TODO: machine is not used here
             "-t", output_image.compile(),
             "-f", dockerfile,
             "--build-arg", f"ARCH={parsed.arch}",
@@ -102,12 +110,14 @@ class CLIDecorateCommand(AbstractCLICommand):
         ]
         cpklogger.info(f"Decorating [{input_image.compile()}] -> [{output_image.compile()}]...")
         cpklogger.debug(f"Running command:\n\t{cmd}")
+
         # build image
         try:
             subprocess.check_call(cmd)
         except subprocess.SubprocessError as e:
             cpklogger.error(str(e))
             return False
+
         # success
         cpklogger.info(f"The given image was successfully decorated for CPK.\n"
                        f"Your CPK-compatible image is called\n\n"

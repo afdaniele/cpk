@@ -1,16 +1,16 @@
 import argparse
-import os
+import time
 from typing import Optional
 
 from docker.errors import APIError
 
+from .endpoint import CLIEndpointInfoCommand
 from .info import CLIInfoCommand
 from .. import AbstractCLICommand, cpklogger
 from ... import CPKProject
 from ...exceptions import CPKProjectPushException
 from ...types import Machine, Arguments
-from ...utils.docker import DOCKER_INFO
-from ...utils.misc import human_size
+from ...utils.cli import check_git_status
 
 
 class CLIPushCommand(AbstractCLICommand):
@@ -37,7 +37,7 @@ class CLIPushCommand(AbstractCLICommand):
 
     @staticmethod
     def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
-        parsed.workdir = os.path.abspath(parsed.workdir)
+        stime = time.time()
 
         # get project
         project = CPKProject(parsed.workdir, parsed=parsed)
@@ -45,21 +45,13 @@ class CLIPushCommand(AbstractCLICommand):
         # show info about project
         CLIInfoCommand.execute(machine, parsed)
 
-        # check if the git HEAD is detached
-        if project.is_detached():
-            cpklogger.error(
-                "The repository HEAD is detached. Create a branch or check one out "
-                "before continuing. Aborting."
-            )
+        # check git workspace status
+        proceed = check_git_status(project, parsed)
+        if not proceed:
             return False
 
-        # check if the index is clean
-        if project.is_dirty():
-            cpklogger.warning("Your index is not clean (some files are not committed).")
-            cpklogger.warning("If you know what you are doing, use --force (-f) to force.")
-            if not parsed.force:
-                return False
-            cpklogger.warning("Forced!")
+        # get info about docker endpoint
+        CLIEndpointInfoCommand.execute(machine, parsed)
 
         # pick right value of `arch` given endpoint
         if parsed.arch is None:
@@ -69,15 +61,6 @@ class CLIPushCommand(AbstractCLICommand):
 
         # create docker client
         docker = machine.get_client()
-
-        # get info about docker endpoint
-        cpklogger.info("Retrieving info about Docker endpoint...")
-        epoint = docker.info()
-        if "ServerErrors" in epoint:
-            cpklogger.error("\n".join(epoint["ServerErrors"]))
-            return False
-        epoint["MemTotal"] = human_size(epoint["MemTotal"])
-        cpklogger.print(DOCKER_INFO.format(**epoint))
 
         # create defaults
         image = project.image(parsed.arch)

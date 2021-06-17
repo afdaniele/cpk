@@ -10,14 +10,15 @@ from docker.errors import ImageNotFound, APIError
 from termcolor import colored
 
 from cpk import CPKProject, cpkconfig
-from cpk.utils.docker import DOCKER_INFO, transfer_image
-from cpk.utils.misc import human_size, human_time, configure_binfmt
+from cpk.utils.docker import transfer_image
+from cpk.utils.misc import human_time, configure_binfmt
 from .endpoint import CLIEndpointInfoCommand
 from .info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
 from ...exceptions import CPKProjectBuildException
 from ...types import Machine, Arguments
+from ...utils.cli import check_git_status
 from ...utils.image_analyzer import EXTRA_INFO_SEPARATOR, ImageAnalyzer, SEPARATORS_LENGTH
 from ...utils.machine import get_machine
 
@@ -124,30 +125,20 @@ class CLIBuildCommand(AbstractCLICommand):
         # show info about project
         CLIInfoCommand.execute(machine, parsed)
 
-        # check if the git HEAD is detached
-        if project.is_detached():
-            cpklogger.error(
-                "The repository HEAD is detached. Create a branch or check one out "
-                "before continuing. Aborting."
-            )
+        # check git workspace status
+        proceed = check_git_status(project, parsed)
+        if not proceed:
             return False
-
-        # check if the index is clean
-        if project.is_dirty():
-            cpklogger.warning("Your index is not clean (some files are not committed).")
-            cpklogger.warning("If you know what you are doing, use --force (-f) to force.")
-            if not parsed.force:
-                return False
-            cpklogger.warning("Forced!")
-
-        # pick right value of `arch` given endpoint
-        if parsed.arch is None:
-            cpklogger.info("Parameter `arch` not given, will resolve it from the endpoint.")
-            parsed.arch = machine.get_architecture()
-            cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
 
         # get info about docker endpoint
         CLIEndpointInfoCommand.execute(machine, parsed)
+
+        # pick right value of `arch` given endpoint
+        machine_arch = machine.get_architecture()
+        if parsed.arch is None:
+            cpklogger.info("Parameter `arch` not given, will resolve it from the endpoint.")
+            parsed.arch = machine_arch
+            cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
 
         # create docker client
         docker = machine.get_client()
@@ -168,17 +159,11 @@ class CLIBuildCommand(AbstractCLICommand):
         buildargs['buildargs']['NCPUS'] = \
             str(parsed.ncpus) if parsed.ncpus else str(machine.get_ncpus())
 
-        # pick the right architecture if not set
-        if parsed.arch is None:
-            parsed.arch = machine.get_architecture()
-            cpklogger.info(f"Target architecture automatically set to {parsed.arch}.")
-
         # create defaults
         image = project.image(parsed.arch)
 
         # print info about multiarch
-        msg = "Building an image for {} on {}.".format(parsed.arch, epoint["Architecture"])
-        cpklogger.info(msg)
+        cpklogger.info("Building an image for {} on {}.".format(parsed.arch, machine_arch))
         # - register bin_fmt in the target machine (if needed)
         if not parsed.no_multiarch:
             configure_binfmt(parsed.arch, docker, cpklogger)

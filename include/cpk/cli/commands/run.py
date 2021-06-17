@@ -7,13 +7,14 @@ from typing import Optional
 from docker.errors import ImageNotFound
 
 from cpk import CPKProject
-from cpk.utils.docker import DOCKER_INFO
-from cpk.utils.misc import human_size, configure_binfmt
+from cpk.utils.misc import configure_binfmt
+from .endpoint import CLIEndpointInfoCommand
 from .info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
 from ...exceptions import NotACPKProjectException
 from ...types import CPKFileMappingTrigger, Machine, Arguments
+from ...utils.cli import check_git_status
 
 DEFAULT_NETWORK_MODE = "bridge"
 SUPPORTED_SUBCOMMANDS = [
@@ -153,54 +154,30 @@ class CLIRunCommand(AbstractCLICommand):
 
     @staticmethod
     def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
-        parsed.workdir = os.path.abspath(parsed.workdir)
-
         # get project
         project = CPKProject(parsed.workdir, parsed=parsed)
 
         # show info about project
         CLIInfoCommand.execute(machine, parsed)
 
-        # check if the git HEAD is detached
-        if project.is_detached():
-            cpklogger.error(
-                "The repository HEAD is detached. Create a branch or check one out "
-                "before continuing. Aborting."
-            )
+        # check git workspace status
+        mount_source = parsed.mount is True or isinstance(parsed.mount, str)
+        proceed = check_git_status(project, parsed, must_be_clean=mount_source)
+        if not proceed:
             return False
 
-        # check if the index is clean
-        mount_source = parsed.mount is True or isinstance(parsed.mount, str)
-        if project.is_dirty() and mount_source:
-            cpklogger.warning("Your index is not clean (some files are not committed).")
-            cpklogger.warning("If you know what you are doing, use --force (-f) to force.")
-            if not parsed.force:
-                return False
-            cpklogger.warning("Forced!")
+        # get info about docker endpoint
+        CLIEndpointInfoCommand.execute(machine, parsed)
 
         # pick right value of `arch` given endpoint
+        machine_arch = machine.get_architecture()
         if parsed.arch is None:
             cpklogger.info("Parameter `arch` not given, will resolve it from the endpoint.")
-            parsed.arch = machine.get_architecture()
+            parsed.arch = machine_arch
             cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
 
         # create docker client
         docker = machine.get_client()
-
-        # get info about docker endpoint
-        # TODO: turn this into a docker-util
-        cpklogger.info("Retrieving info about Docker endpoint...")
-        epoint = docker.info()
-        if "ServerErrors" in epoint:
-            cpklogger.error("\n".join(epoint["ServerErrors"]))
-            return False
-        epoint["MemTotal"] = human_size(epoint["MemTotal"])
-        cpklogger.print(DOCKER_INFO.format(**epoint))
-
-        # pick the right architecture if not set
-        if parsed.arch is None:
-            parsed.arch = machine.get_architecture()
-            cpklogger.info(f"Target architecture automatically set to {parsed.arch}.")
 
         # create defaults
         image = project.image(parsed.arch)
@@ -226,8 +203,7 @@ class CLIRunCommand(AbstractCLICommand):
         #     return True
 
         # print info about multiarch
-        msg = "Running an image for {} on {}.".format(parsed.arch, epoint["Architecture"])
-        cpklogger.info(msg)
+        cpklogger.info("Running an image for {} on {}.".format(parsed.arch, machine_arch))
         # - register bin_fmt in the target machine (if needed)
         if not parsed.no_multiarch:
             configure_binfmt(parsed.arch, docker, cpklogger)
@@ -244,11 +220,6 @@ class CLIRunCommand(AbstractCLICommand):
         if shutil.which(parsed.runtime) is None:
             raise ValueError('Docker runtime binary "{}" not found!'.format(parsed.runtime))
         # ---
-
-        # pick the right architecture if not set
-        if parsed.arch is None:
-            parsed.arch = machine.get_architecture()
-            cpklogger.info(f"Target architecture automatically set to {parsed.arch}.")
 
         # create the module configuration
         module_configuration_args = [
