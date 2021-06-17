@@ -1,7 +1,7 @@
 import unittest
 
 
-class TestArgparse(unittest.TestCase):
+class TestArgParse(unittest.TestCase):
 
     def setUp(self):
         self.parser = None
