@@ -290,6 +290,8 @@ class Machine(abc.ABC):
         self._name = name
         self._base_url = base_url
         self._configuration = configuration or {}
+        # cache
+        self._arch = None
 
     @property
     def name(self) -> str:
@@ -343,11 +345,17 @@ class Machine(abc.ABC):
             rmtree(path)
 
     def get_architecture(self) -> str:
+        if self._arch is not None:
+            return self._arch
+        # get client
         client = self.get_client()
-        # ---
-        endpoint_arch = client.info()["Architecture"]
-        if endpoint_arch not in CANONICAL_ARCH:
-            raise CPKException(f"Unsupported architecture '{endpoint_arch}'.")
+        try:
+            # fetch architecture from client
+            endpoint_arch = client.info()["Architecture"]
+            if endpoint_arch not in CANONICAL_ARCH:
+                raise CPKException(f"Unsupported architecture '{endpoint_arch}'.")
+        finally:
+            client.close()
         return CANONICAL_ARCH[endpoint_arch]
 
     def get_ncpus(self, ) -> Optional[int]:

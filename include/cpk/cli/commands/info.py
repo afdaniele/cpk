@@ -35,7 +35,7 @@ class CLIInfoCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: Optional[Machine], parsed: argparse.Namespace) -> bool:
         cpklogger.info("Project workspace: {}".format(parsed.workdir))
 
         # get the project

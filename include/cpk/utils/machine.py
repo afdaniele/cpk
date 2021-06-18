@@ -67,12 +67,17 @@ def load_machines(path: str) -> Dict[str, Machine]:
 
 def get_machine(parsed: argparse.Namespace, machines: Dict[str, Machine]) -> Machine:
     if parsed.machine is None:
+        cpklogger.debug("Argument 'parsed.machine' not set. Creating machine from environment.")
         return FromEnvMachine()
     # match machine names against given string
-    know_machine = machines.get(str(parsed.machine).strip(), None)
-    if know_machine:
-        return know_machine
+    known_machine = machines.get(str(parsed.machine).strip(), None)
+    if known_machine:
+        cpklogger.debug(f"Machine '{parsed.machine}' is a known machine. "
+                        f"Endpoint: {known_machine.base_url}")
+        return known_machine
     # assume it is a hostname or IP address
+    cpklogger.debug(f"Machine '{parsed.machine}' is not a known machine. "
+                    f"Assuming a resolvable hostname or an IP address was passed.")
     return TCPMachine(parsed.machine, sanitize_hostname(parsed.machine))
 
 

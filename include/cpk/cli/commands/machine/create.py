@@ -18,7 +18,7 @@ class MachineTarget:
 
 _valid_targets = {
     "ssh": MachineTarget(
-        pattern=r"^(?P<user>.*?)@(?P<host>[^:]+?)(?::(?P<port>[0-9]+))?$",
+        pattern=r"^(ssh\:\/\/)?(?P<user>.*?)@(?P<host>[^:]+?)(?::(?P<port>[0-9]+))?$",
         explanation="user@host[:port]",
         cls=SSHMachine
     ),

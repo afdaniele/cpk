@@ -60,7 +60,8 @@ def run():
     parsed.machine = None
     # execute command
     try:
-        command.execute(machine, parsed)
+        with machine:
+            command.execute(machine, parsed)
     except CPKException as e:
         cpklogger.error(str(e))
     except KeyboardInterrupt:

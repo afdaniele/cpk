@@ -48,11 +48,11 @@ class UnixSocketMachine(TCPMachine):
 class SSHMachine(Machine):
     type: str = "ssh"
 
-    def __init__(self, name: str, user: str, host: str, port: int = 22):
+    def __init__(self, name: str, user: str, host: str, port: Optional[int] = 22):
         config = {
             "user": user,
             "host": host,
-            "port": port,
+            "port": port if port is not None else 22,
         }
         super(SSHMachine, self).__init__(name, configuration=config)
 
@@ -78,7 +78,7 @@ class SSHMachine(Machine):
         return f"ssh://{self.uri}"
 
     def get_client(self) -> DockerClient:
-        return docker.DockerClient(base_url=self._base_url, use_ssh_client=True)
+        return docker.DockerClient(base_url=self.base_url, use_ssh_client=True)
 
     def save(self, logger: Optional[logging.Logger] = None):
         from cpk import cpkconfig
@@ -115,13 +115,13 @@ class SSHMachine(Machine):
         os.makedirs(ssh_keys_dir, mode=0o700, exist_ok=True)
         # - private key
         private_key_fpath = os.path.join(ssh_keys_dir, "id_rsa")
-        with open(private_key_fpath, "wb") as fout:
+        with open(os.open(private_key_fpath, os.O_CREAT | os.O_WRONLY, 0o600), "wb") as fout:
             if logger:
                 logger.debug(f"Writing private key to '{private_key_fpath}'")
             fout.write(private_key)
         # - public key
         public_key_fpath = os.path.join(ssh_keys_dir, "id_rsa.pub")
-        with open(public_key_fpath, "wb") as fout:
+        with open(os.open(public_key_fpath, os.O_CREAT | os.O_WRONLY, 0o644), "wb") as fout:
             if logger:
                 logger.debug(f"Writing public key to '{private_key_fpath}'")
             fout.write(public_key)
@@ -129,7 +129,7 @@ class SSHMachine(Machine):
         ssh_conf_fpath = os.path.join(path, "host.conf")
         config = empty_ssh_config_file()
         config.add(
-            self.name,
+            self.host,
             Hostname=self.host,
             User=self.user,
             **({"Port": self.port} if self.port else {}),
@@ -166,4 +166,4 @@ class SSHMachine(Machine):
         cpk_ssh_pool_dir = os.path.join(cpkconfig.path, "ssh")
         host_cfg_fpath = os.path.join(cpk_ssh_pool_dir, f"{self.name}.conf")
         if os.path.exists(host_cfg_fpath) and os.path.isfile(host_cfg_fpath):
-            shutil.rmtree(host_cfg_fpath)
+            os.remove(host_cfg_fpath)

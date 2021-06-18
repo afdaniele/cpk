@@ -26,7 +26,7 @@ class CLIMachineCommand(AbstractCLICommand):
     def parser(parent: Optional[argparse.ArgumentParser] = None,
                args: Optional[Arguments] = None) -> argparse.ArgumentParser:
         # create a temporary parser used to select the subcommand
-        parser = argparse.ArgumentParser(parents=[parent])
+        parser = argparse.ArgumentParser(parents=[parent], prog='cpk machine')
         parser.add_argument(
             'subcommand',
             choices=_supported_subcommands.keys(),

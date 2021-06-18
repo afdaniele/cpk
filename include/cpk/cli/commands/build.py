@@ -123,7 +123,7 @@ class CLIBuildCommand(AbstractCLICommand):
         project = CPKProject(parsed.workdir, parsed=parsed)
 
         # show info about project
-        CLIInfoCommand.execute(machine, parsed)
+        CLIInfoCommand.execute(None, parsed)
 
         # check git workspace status
         proceed = check_git_status(project, parsed)
