@@ -61,10 +61,8 @@ def parse_configurations(config_file: str) -> dict:
         return configurations_content["configurations"]
 
 
-def configure_binfmt(arch: str, epoint: docker.DockerClient, logger):
-    epoint_info = epoint.info()
-    epoint_arch = epoint_info["Architecture"]
-    compatible_archs = BUILD_COMPATIBILITY_MAP[CANONICAL_ARCH[epoint_arch]]
+def configure_binfmt(machine_arch: str, arch: str, epoint: docker.DockerClient, logger):
+    compatible_archs = BUILD_COMPATIBILITY_MAP[machine_arch]
     if arch not in compatible_archs:
         logger.info("Configuring machine for multiarch...")
         try:
@@ -82,7 +80,7 @@ def configure_binfmt(arch: str, epoint: docker.DockerClient, logger):
             logger.debug(f"The error reads:\n\t{str(e)}\n")
     else:
         msg = "Working with an `{}` image on `{}`. Multiarch not needed!".format(
-            arch, epoint_arch
+            arch, machine_arch
         )
         logger.info(msg)
 

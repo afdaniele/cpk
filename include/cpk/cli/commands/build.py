@@ -166,7 +166,7 @@ class CLIBuildCommand(AbstractCLICommand):
         cpklogger.info("Building an image for {} on {}.".format(parsed.arch, machine_arch))
         # - register bin_fmt in the target machine (if needed)
         if not parsed.no_multiarch:
-            configure_binfmt(parsed.arch, docker, cpklogger)
+            configure_binfmt(machine_arch, parsed.arch, docker, cpklogger)
 
         # architecture target
         buildargs["buildargs"]["ARCH"] = parsed.arch

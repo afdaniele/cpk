@@ -206,7 +206,7 @@ class CLIRunCommand(AbstractCLICommand):
         cpklogger.info("Running an image for {} on {}.".format(parsed.arch, machine_arch))
         # - register bin_fmt in the target machine (if needed)
         if not parsed.no_multiarch:
-            configure_binfmt(parsed.arch, docker, cpklogger)
+            configure_binfmt(machine_arch, parsed.arch, docker, cpklogger)
 
         # ---
         # TODO: this is wrong, x-docker should either be a Python package that gives us the
