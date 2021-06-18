@@ -7,6 +7,7 @@ from shutil import which
 from typing import Optional
 
 import docker
+from cpk.exceptions import CPKException
 from docker import DockerClient
 
 from cpk.types import Machine
@@ -35,7 +36,10 @@ class TCPMachine(Machine):
         super(TCPMachine, self).__init__(name, host)
 
     def get_client(self) -> DockerClient:
-        return docker.DockerClient(base_url=self._base_url)
+        try:
+            return docker.DockerClient(base_url=self.base_url)
+        except docker.errors.DockerException as e:
+            raise CPKException(str(e))
 
 
 class UnixSocketMachine(TCPMachine):
@@ -71,11 +75,11 @@ class SSHMachine(Machine):
     @property
     def uri(self) -> Optional[str]:
         cfg = self._configuration
-        return f"{cfg['user']}@{cfg['host']}" + (f":{cfg['port']}" if cfg['port'] else "")
+        return f"{cfg['user']}@{cfg['host']}"
 
     @property
     def base_url(self) -> Optional[str]:
-        return f"ssh://{self.uri}"
+        return f"ssh://{self.uri}:{self.port}"
 
     def get_client(self) -> DockerClient:
         return docker.DockerClient(base_url=self.base_url, use_ssh_client=True)
@@ -150,6 +154,7 @@ class SSHMachine(Machine):
         retcode = subprocess.call(cmd, stderr=subprocess.DEVNULL)
         if retcode == 0:
             return
+        self.remove(logger=logger)
         raise RuntimeError("RSA keys could not be copied to the destination machine.")
 
     def __enter__(self):
