@@ -5,6 +5,7 @@ import sys
 
 import cpk
 from cpk import cpkconfig
+from cpk.cli.commands.create import CLICreateCommand
 from cpk.exceptions import CPKException
 
 from cpk.cli.logger import cpklogger
@@ -19,6 +20,7 @@ from cpk.cli.commands.endpoint import CLIEndpointCommand
 from cpk.utils.machine import get_machine
 
 _supported_commands = {
+    'create': CLICreateCommand,
     'info': CLIInfoCommand,
     'build': CLIBuildCommand,
     'run': CLIRunCommand,
