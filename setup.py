@@ -32,8 +32,8 @@ def get_decorator_files() -> List[str]:
     return files
 
 
-if sys.version_info < (3, 5):
-    msg = 'cpk works with Python 3.5 and later.\nDetected %s.' % str(sys.version)
+if sys.version_info < (3, 6):
+    msg = 'cpk works with Python 3.6 and later.\nDetected %s.' % str(sys.version)
     sys.exit(msg)
 
 lib_version = get_version(filename='include/cpk/__init__.py')
@@ -45,6 +45,8 @@ setup(
         'cpk.adapters',
         'cpk.cli',
         'cpk.cli.commands',
+        'cpk.cli.commands.machine',
+        'cpk.cli.commands.endpoint',
         'cpk.schemas',
         'cpk.utils',
         'cpk.decorator'
@@ -76,7 +78,8 @@ setup(
         'termcolor',
         'pyyaml',
         'sshconf',
-        'cryptography'
+        'cryptography',
+        *(['dataclasses'] if sys.version_info < (3, 7) else [])
     ],
     scripts=[
         'include/cpk/bin/cpk'
