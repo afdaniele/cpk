@@ -81,7 +81,7 @@ def configure_binfmt(arch: str, epoint: docker.DockerClient, logger):
             logger.warning(msg)
             logger.debug(f"The error reads:\n\t{str(e)}\n")
     else:
-        msg = "Working on an `{}` image on `{}`. Multiarch not needed!".format(
+        msg = "Working with an `{}` image on `{}`. Multiarch not needed!".format(
             arch, epoint_arch
         )
         logger.info(msg)
