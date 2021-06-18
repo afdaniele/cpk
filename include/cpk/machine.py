@@ -4,7 +4,7 @@ import shutil
 import subprocess
 import time
 from shutil import which
-from typing import Optional
+from typing import Optional, Union
 
 import docker
 from cpk.exceptions import CPKException
@@ -52,11 +52,11 @@ class UnixSocketMachine(TCPMachine):
 class SSHMachine(Machine):
     type: str = "ssh"
 
-    def __init__(self, name: str, user: str, host: str, port: Optional[int] = 22):
+    def __init__(self, name: str, user: str, host: str, port: Optional[Union[str, int]] = 22):
         config = {
             "user": user,
             "host": host,
-            "port": port if port is not None else 22,
+            "port": int(port) if port is not None else 22,
         }
         super(SSHMachine, self).__init__(name, configuration=config)
 
