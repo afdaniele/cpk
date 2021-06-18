@@ -66,7 +66,7 @@ def configure_binfmt(arch: str, epoint: docker.DockerClient, logger):
     epoint_arch = epoint_info["Architecture"]
     compatible_archs = BUILD_COMPATIBILITY_MAP[CANONICAL_ARCH[epoint_arch]]
     if arch not in compatible_archs:
-        logger.info("Configuring machine for multiarch builds...")
+        logger.info("Configuring machine for multiarch...")
         try:
             epoint.containers.run(
                 "multiarch/qemu-user-static:register",
@@ -81,7 +81,7 @@ def configure_binfmt(arch: str, epoint: docker.DockerClient, logger):
             logger.warning(msg)
             logger.debug(f"The error reads:\n\t{str(e)}\n")
     else:
-        msg = "Building an image for {} on {}. Multiarch not needed!".format(
+        msg = "Working on an `{}` image on `{}`. Multiarch not needed!".format(
             arch, epoint_arch
         )
         logger.info(msg)
