@@ -1,10 +1,10 @@
 import unittest
 
 
-class TestArgParse(unittest.TestCase):
+class TestABC(unittest.TestCase):
 
     def setUp(self):
-        self.parser = None
+        self.my_var = None
 
     def test_A(self):
         self.assertTrue(True)

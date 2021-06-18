@@ -37,10 +37,16 @@ format:
 
 test:
 	$(MAKE) test-unit
-	#$(MAKE) -f ${ROOT_DIR}/tests/distribution/Makefile test-all
+	$(MAKE) test-distribution
 
 test-unit:
 	$(MAKE) test-one-unit TEST="test_*"
+
+test-distribution:
+	$(MAKE) -f ${ROOT_DIR}/tests/distribution/Makefile test-all
+
+test-distribution-3.6:
+	$(MAKE) -f ${ROOT_DIR}/tests/distribution/Makefile test-no-clean PYTHON_VERSION=3.6;
 
 test-one-unit:
 	@echo "Running unit tests:"; echo ""
