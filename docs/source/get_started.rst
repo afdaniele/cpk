@@ -8,7 +8,7 @@ packaged for maximum portability, readability and maintainability.
 `cpk` is the result of years of experience in the context of
 cross-user, cross-machine, cross-architecture development and deployment
 of software modules. Originally created to standardize and simplify
-code development and deployment in `Duckietown <https://duckietown.org>`,
+code development and deployment in `Duckietown <https://duckietown.org>`_,
 it later became an independent toolkit.
 
 

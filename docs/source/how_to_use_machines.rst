@@ -75,6 +75,7 @@ We can list the machines stored by `cpk` by running the command,
 
 A shortcut for the command above is ``cpk machine ls``.
 
+
 Remove a Machine
 ----------------
 
@@ -85,3 +86,50 @@ We can remove a machine called ``myws`` using the command,
     $ cpk machine remove myws
 
 A shortcut for the command above is ``cpk machine rm``.
+
+
+Use a Machine
+-------------
+
+You can think of `cpk` as having a default machine that gets created
+when you install it, pointing to your local Docker endpoint.
+
+Once your machine is created, you can redirect all your `cpk`
+commands towards it, instead of the default (local) machine.
+In order to do so, pass the argument ``-H/--machine <MACHINE>``
+to your `cpk` commands.
+
+.. note::
+    The value of ``<MACHINE>`` can be:
+        - The name of a machine you previously created (e.g., ``myws``);
+        - A (resolvable) hostname of a machine exposing the TCP socket for Docker;
+        - An IP address of a machine exposing the TCP socket for Docker;
+
+For example, we can show information about the endpoint a machine
+points to with the command,
+
+.. code-block:: bash
+
+    $ cpk endpoint info -H myws
+
+This will show you information about the Docker endpoint the machine
+``myws`` is pointing to, for example,
+
+.. code-block:: bash
+
+    cpk|    INFO : CPK - Code Packaging toolKit - v0.0.4
+    cpk|    INFO : Retrieving info about Docker endpoint...
+       |
+       | Docker Endpoint:
+       |   Machine: myws
+       |   Hostname: myws
+       |   Operating System: Ubuntu 20.04.2 LTS
+       |   Kernel Version: 5.4.0-74-generic
+       |   OSType: linux
+       |   Architecture: x86_64
+       |   Total Memory: 251.64 GB
+       |   CPUs: 64
+       |
+
+You can build and run your `cpk` projects against a machine, with
+``cpk build -H myws`` and ``cpk run -H myws``.

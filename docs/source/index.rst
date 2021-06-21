@@ -17,6 +17,7 @@ maintainability.
 
    get_started
    how_to_add_code
+   how_to_add_dependencies
    how_to_use_machines
 
 
