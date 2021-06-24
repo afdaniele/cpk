@@ -19,6 +19,12 @@ CANONICAL_ARCH = {
     "aarch64": "arm64v8",
 }
 
+ARCH_TO_DOCKER_PLATFORM = {
+    "amd64": "linux/amd64",
+    "arm32v7": "linux/arm/v7",
+    "arm64v8": "linux/arm64/v8",
+}
+
 BUILD_COMPATIBILITY_MAP = {
     "arm32v7": ["arm32v7"],
     "arm64v8": ["arm32v7", "arm64v8"],

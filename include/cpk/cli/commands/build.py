@@ -16,6 +16,7 @@ from .endpoint import CLIEndpointInfoCommand
 from .info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
+from ...constants import ARCH_TO_DOCKER_PLATFORM
 from ...exceptions import CPKProjectBuildException
 from ...types import Machine, Arguments
 from ...utils.cli import check_git_status
@@ -89,12 +90,14 @@ class CLIBuildCommand(AbstractCLICommand):
             action="store_true",
             help="Stamp image with the build time"
         )
+        # TODO: to be implemented
         parser.add_argument(
             "-D",
             "--destination",
             default=None,
             help="CPK machine or endpoint hostname where to deliver the image once built"
         )
+        # TODO: to be implemented
         parser.add_argument(
             "--docs",
             default=False,
@@ -167,6 +170,7 @@ class CLIBuildCommand(AbstractCLICommand):
         # - register bin_fmt in the target machine (if needed)
         if not parsed.no_multiarch:
             configure_binfmt(machine_arch, parsed.arch, docker, cpklogger)
+        platform = ARCH_TO_DOCKER_PLATFORM.get(parsed.arch, None)
 
         # architecture target
         buildargs["buildargs"]["ARCH"] = parsed.arch
@@ -250,6 +254,7 @@ class CLIBuildCommand(AbstractCLICommand):
                 "pull": parsed.pull,
                 "nocache": parsed.no_cache,
                 "tag": image,
+                "platform": platform
             }
         )
         cpklogger.debug("Build arguments:\n%s\n" % json.dumps(buildargs, sort_keys=True, indent=4))
@@ -283,12 +288,12 @@ class CLIBuildCommand(AbstractCLICommand):
             buildlog.append(msg)
             cpklogger.print(msg)
 
-        # build code docs
-        if parsed.docs:
-            docs_args = ["--quiet"] * int(not parsed.verbose)
-            # build docs
-            cpklogger.info("Building documentation...")
-            # TODO: fix this
+        # TODO: fix this
+        # # build code docs
+        # if parsed.docs:
+        #     docs_args = ["--quiet"] * int(not parsed.verbose)
+        #     # build docs
+        #     cpklogger.info("Building documentation...")
 
         # get image history
         historylog = [(layer["Id"], layer["Size"]) for layer in dimage.history()]

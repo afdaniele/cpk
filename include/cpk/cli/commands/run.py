@@ -55,12 +55,12 @@ class CLIRunCommand(AbstractCLICommand):
             action="store_true",
             help="Whether to force pull the image of the project",
         )
-        parser.add_argument(
-            "--plain",
-            default=False,
-            action="store_true",
-            help="Whether to run the image without default module configuration",
-        )
+        # parser.add_argument(
+        #     "--plain",
+        #     default=False,
+        #     action="store_true",
+        #     help="Whether to run the image without default module configuration",
+        # )
         parser.add_argument(
             "--no-multiarch",
             default=False,
@@ -143,13 +143,13 @@ class CLIRunCommand(AbstractCLICommand):
             nargs="*",
             default=[]
         )
-        parser.add_argument(
-            "subcommand",
-            nargs="?",
-            default=None,
-            choices=SUPPORTED_SUBCOMMANDS,
-            help="(Optional) Subcommand to execute"
-        )
+        # parser.add_argument(
+        #     "subcommand",
+        #     nargs="?",
+        #     default=None,
+        #     choices=SUPPORTED_SUBCOMMANDS,
+        #     help="(Optional) Subcommand to execute"
+        # )
         return parser
 
     @staticmethod
