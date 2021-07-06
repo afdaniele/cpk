@@ -65,6 +65,7 @@ setup(
     package_data={
         "cpk": [
             "schemas/*/*.json",
+            "cli/commands/x-docker",
             *get_decorator_files(),
             *get_skeleton_files()
         ],
