@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+
+__VERSION__="0.1.0"
+
+# constants
+SYS_LINUX=0
+SYS_MAC=1
+
+# variables (default values)
+SYSTEM=-1
+NET_DEVICE=""
+NET_IP=127.0.0.1
+DISPLAY_NO=":0"
+
+# get current system
+system_codename="$(uname -s)"
+case "${system_codename}" in
+    Linux*)  # Linux
+        echo "Running X-Docker on Linux (`uname -r`)."
+        SYSTEM=$SYS_LINUX
+        ;;
+    Darwin*) # Mac OSX
+        echo "Running X-Docker on Mac OSX (`uname -r`)."
+        SYSTEM=$SYS_MAC
+        ;;
+    *)       # System not supported
+        echo "System '${system_codename}' not supported."
+        exit 1
+esac
+
+# wait for XQuartz to start (if needed)
+if [ $SYSTEM -eq $SYS_MAC ]; then
+    # enable hardware acceleration (for Mac OSX Mojave or newer)
+    defaults write org.macosforge.xquartz.X11 enable_iglx -bool true
+    # open XQuartz
+    APP_NAME="XQuartz"
+    APP_COUNT=$(ps aux | grep $APP_NAME | grep -v "grep" | wc -l | awk '{print $1}')
+    if [ $APP_COUNT -le 0 ]; then
+        # XQuartz is not running (give XQuartz time to start)
+        open -a $APP_NAME
+        echo "Waiting for X to be ready"
+        sleep 4
+    fi
+fi
+
+# get IP address, and the X display number
+if [ $SYSTEM -eq $SYS_LINUX ]; then
+    # get ip
+    NET_IP=''
+    # get display number
+    DISPLAY_NO=$DISPLAY
+    # allow X-server to receive connections from current machine
+    xhost +local:root
+elif [ $SYSTEM -eq $SYS_MAC ]; then
+    # get default gateway device
+    NET_DEVICE=$(route get default | grep "interface: " | head -1 | awk '{ print $2 }')
+    # get ip
+    NET_IP=$(ifconfig $NET_DEVICE | grep inet | awk '$1=="inet" {print $2}')
+    # get display number
+    DISPLAY_NO=$(ps -ef | grep "Xquartz :\d" | grep -v "xinit" | awk '{ print $9; }')
+    # allow X-server to receive connections from current machine
+    xhost + $NET_IP
+fi
+
+# set default docker binary
+X_DOCKER="docker"
+DOCKER_ARGS=()
+X_DOCKER_ARGS=()
+
+# choose nvidia-docker (if available)
+which "nvidia-docker" >/dev/null 2>&1
+if [ $? -eq 0 ] ; then
+    X_DOCKER="nvidia-docker"
+    X_DOCKER_ARGS+=(\
+        -e NVIDIA_VISIBLE_DEVICES=all \
+        -e NVIDIA_DRIVER_CAPABILITIES=graphics \
+    )
+fi
+
+while [ $# -gt 0 ]; do
+    arg=$1
+    shift
+    DOCKER_ARGS+=("$arg")
+    case $arg in
+        run|create)
+            X_DOCKER_ARGS+=(\
+                -it \
+                -e DISPLAY=$NET_IP$DISPLAY_NO \
+                -e QT_X11_NO_MITSHM=1 \
+                -v /tmp/.X11-unix:/tmp/.X11-unix \
+            )
+            break
+        ;;
+        version)
+            printf "X-Docker: v${__VERSION__}\n"
+            break
+        ;;
+        --)
+            break
+        ;;
+    esac
+done
+
+
+# DEBUG only
+# echo $X_DOCKER "${DOCKER_ARGS[@]}" "${X_DOCKER_ARGS[@]}" "$@"
+
+exec $X_DOCKER "${DOCKER_ARGS[@]}" "${X_DOCKER_ARGS[@]}" "$@"
