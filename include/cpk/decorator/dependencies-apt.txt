@@ -1,2 +1,4 @@
 # LIST YOUR APT PACKAGES HERE
+wget
+unzip
 python3-pip

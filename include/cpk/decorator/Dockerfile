@@ -43,8 +43,10 @@ ENV INITSYSTEM="off" \
     LC_ALL="C.UTF-8" \
     PYTHONIOENCODING="UTF-8" \
     DEBIAN_FRONTEND="noninteractive" \
+    CATKIN_VERSION="0.8.10" \
     # cpk environment
-    CPK_SOURCE_DIR="/code" \
+    CPK_CODE_DIR="/code" \
+    CPK_SOURCE_DIR="/code/src" \
     CPK_LAUNCHERS_DIR="/launchers" \
     CPK_INSTALL_DIR="/cpk"
 
@@ -81,6 +83,12 @@ RUN cpk-apt-install "${PROJECT_PATH}/dependencies-apt.txt"
 # install dependencies (PIP3)
 COPY ./dependencies-py3.txt "${PROJECT_PATH}/"
 RUN cpk-pip3-install "${PROJECT_PATH}/dependencies-py3.txt"
+
+# install catkin engine
+RUN cd /tmp/ && \
+    wget https://github.com/ros/catkin/archive/refs/tags/${CATKIN_VERSION}.zip && \
+    unzip ${CATKIN_VERSION}.zip -d ${PROJECT_PATH}/packages/ && \
+    rm ${CATKIN_VERSION}.zip
 
 # define healthcheck
 RUN echo ND > /health
