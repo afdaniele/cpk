@@ -6,7 +6,7 @@
     "mappings": [
         {
             "source": "",
-            "destination": "/code/{project_name}",
+            "destination": "/code/src/{project_name}",
             "triggers": [
                 "run:mount"
             ]
