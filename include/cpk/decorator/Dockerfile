@@ -86,7 +86,8 @@ RUN cpk-pip3-install "${PROJECT_PATH}/dependencies-py3.txt"
 
 # install catkin engine
 RUN cd /tmp/ && \
-    wget https://github.com/ros/catkin/archive/refs/tags/${CATKIN_VERSION}.zip && \
+    wget --no-check-certificate \
+        https://github.com/ros/catkin/archive/refs/tags/${CATKIN_VERSION}.zip && \
     unzip ${CATKIN_VERSION}.zip -d ${PROJECT_PATH}/packages/ && \
     rm ${CATKIN_VERSION}.zip
 
