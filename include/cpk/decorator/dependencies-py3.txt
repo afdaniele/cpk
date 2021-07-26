@@ -1,3 +1,7 @@
 # LIST YOUR PYTHON PACKAGES HERE
+
 pip==21.0.1
+
+# catkin
 catkin-tools==0.7.1
+empy

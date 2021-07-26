@@ -5,14 +5,16 @@ import subprocess
 from shutil import which
 from typing import Optional, Callable
 
+from cpk.utils.misc import configure_binfmt
+
 import cpk
+from .endpoint import CLIEndpointInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
 from ...types import DockerImageName, Machine, Arguments
 
 
 class CLIDecorateCommand(AbstractCLICommand):
-
     KEY = 'decorate'
 
     DOCKER_IMAGE_REGEX = r"^((?:(?:[a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*" \
@@ -54,6 +56,12 @@ class CLIDecorateCommand(AbstractCLICommand):
             help="The image maintainer's email address",
             type=regex_type(CLIDecorateCommand.EMAIL_ADDRESS_REGEX)
         )
+        parser.add_argument(
+            "--no-multiarch",
+            default=False,
+            action="store_true",
+            help="Whether to disable multiarch support (based on bin_fmt)",
+        )
         return parser
 
     @staticmethod
@@ -90,6 +98,25 @@ class CLIDecorateCommand(AbstractCLICommand):
 
         # compile maintainer string
         maintainer = f"{parsed.maintainer} ({parsed.email})" if parsed.email else parsed.maintainer
+
+        # get info about docker endpoint
+        CLIEndpointInfoCommand.execute(machine, parsed)
+
+        # pick right value of `arch` given endpoint
+        machine_arch = machine.get_architecture()
+        if parsed.arch is None:
+            cpklogger.info("Parameter `arch` not given, will resolve it from the endpoint.")
+            parsed.arch = machine_arch
+            cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
+
+        # create docker client
+        docker = machine.get_client()
+
+        # print info about multiarch
+        cpklogger.info("Decorating an image for {} on {}.".format(parsed.arch, machine_arch))
+        # - register bin_fmt in the target machine (if needed)
+        if not parsed.no_multiarch:
+            configure_binfmt(machine_arch, parsed.arch, docker, cpklogger)
 
         # compile command
         cmd = [

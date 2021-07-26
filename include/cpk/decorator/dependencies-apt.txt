@@ -1,4 +1,15 @@
 # LIST YOUR APT PACKAGES HERE
+
+# these are for installing the catkin engine
 wget
 unzip
+
+# these are for catkin
+make
+cmake
+g++
+gcc
+gcc-multilib
+
+# python3 PIP
 python3-pip

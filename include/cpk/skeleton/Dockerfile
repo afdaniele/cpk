@@ -64,6 +64,10 @@ COPY ./*.cpk ./*.sh ${PROJECT_PATH}/
 # copy the source code
 COPY ./packages "${CPK_PROJECT_PATH}/packages"
 
+# build catkin workspace
+RUN catkin build \
+    --workspace ${CPK_CODE_DIR}
+
 # define default command
 CMD ["bash", "-c", "launcher-${CPK_LAUNCHER}"]
 
