@@ -91,6 +91,27 @@ RUN cd /tmp/ && \
     unzip ${CATKIN_VERSION}.zip -d ${PROJECT_PATH}/packages/ && \
     rm ${CATKIN_VERSION}.zip
 
+# install gcc-multilib
+RUN set -eux; \
+	\
+	arch="$(uname --m)"; \
+	case "$arch" in \
+        # amd64
+		x86_64) package_name='gcc-multilib' ;; \
+        # arm32v6
+		armhf) package_name='gcc-multilib' ;; \
+        # arm32v7
+		armv7) package_name='gcc-multilib' ;; \
+		armv7l) package_name='gcc-multilib' ;; \
+        # arm64v8
+		aarch64) package_name='gcc-multilib-arm-linux-gnueabi' ;; \
+		*) echo >&2 "error: unsupported architecture ($arch)"; exit 1 ;;\
+	esac; \
+	\
+	apt-get update; \
+    apt-get install -y --no-install-recommends $package_name; \
+    rm -rf /var/lib/apt/lists/*
+
 # define healthcheck
 RUN echo ND > /health
 RUN chmod 777 /health

@@ -9,7 +9,6 @@ make
 cmake
 g++
 gcc
-gcc-multilib
 
 # python3 PIP
 python3-pip
