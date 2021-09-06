@@ -1,20 +1,26 @@
 import os
 import re
+import subprocess
 from typing import Optional
 
 from cpk.utils.misc import run_cmd
 from cpk.types import GitRepositoryOrigin, GitRepositoryIndex, GitRepositoryVersion, GitRepository
 
 
-def get_repo_info(path: str) -> Optional[GitRepository]:
+def get_repo_info(path: str) -> GitRepository:
     path = os.path.join(path, '.git')
     if not os.path.exists(path):
         return GitRepository.default()
     # ---
     # get repo info
     # - sha
-    sha = run_cmd(["git", "--git-dir", f'"{path}"',
-                   "rev-parse", "HEAD"])[0]
+    try:
+        sha = run_cmd(["git", "--git-dir", f'"{path}"',
+                       "rev-parse", "HEAD"])[0]
+    except subprocess.CalledProcessError as e:
+        if e.returncode == 128:
+            # empty repository
+            return GitRepository.default()
     # - branch
     branch = run_cmd(["git", "--git-dir", f'"{path}"',
                       "rev-parse", "--abbrev-ref", "HEAD"])[0]
