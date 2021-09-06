@@ -13,9 +13,9 @@ class CLIAdapter(NullAdapter):
         self.enabled = parsed is not None
 
     @property
-    def version(self) -> ProjectVersion:
+    def version(self) -> Optional[ProjectVersion]:
         if not self.enabled or not hasattr(self._parsed, 'tag') or self._parsed.tag is None:
-            return super(CLIAdapter, self).version
+            return None
         # ---
         return ProjectVersion(
             tag=self._parsed.tag,
