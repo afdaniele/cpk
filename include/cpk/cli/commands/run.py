@@ -16,7 +16,6 @@ from ...exceptions import NotACPKProjectException
 from ...types import CPKFileMappingTrigger, Machine, Arguments
 from ...utils.cli import check_git_status
 
-DEFAULT_NETWORK_MODE = "bridge"
 SUPPORTED_SUBCOMMANDS = [
     "attach"
 ]
@@ -121,7 +120,7 @@ class CLIRunCommand(AbstractCLICommand):
         parser.add_argument(
             "--net", "--network_mode",
             dest="network_mode",
-            default=DEFAULT_NETWORK_MODE,
+            default=None,
             type=str,
             help="Docker network mode"
         )
@@ -222,9 +221,11 @@ class CLIRunCommand(AbstractCLICommand):
         # ---
 
         # create the module configuration
-        module_configuration_args = [
-            f"--net={parsed.network_mode}"
-        ]
+        module_configuration_args = []
+
+        # network mode
+        if parsed.network_mode is not None:
+            module_configuration_args.append(f"--net={parsed.network_mode}")
 
         # mount code
         mount_option = []
