@@ -22,8 +22,8 @@ surgery = {
     "description": {
         "title": "Project Description",
         "targets": ["project.cpk"],
-        "pattern": r"^.*$",
-        "pattern_human": "free text"
+        "pattern": r"^.+$",
+        "pattern_human": "a non-empty free text"
     },
     "organization": {
         "title": "Owner Username",
@@ -34,8 +34,8 @@ surgery = {
     "maintainer": {
         "title": "Owner Full Name",
         "targets": ["project.cpk"],
-        "pattern": r"^.*$",
-        "pattern_human": "First Last <EMail Address>"
+        "pattern": r"^.+$",
+        "pattern_human": "a non-empty string, suggested format is 'First Last <EMail Address>'"
     },
 }
 
@@ -50,16 +50,13 @@ class CLICreateCommand(AbstractCLICommand):
         parser = argparse.ArgumentParser(parents=[parent])
         parser.add_argument(
             'path',
-            default=None,
-            help="(optional) Location where to create the new project"
+            help="Location where to create the new project"
         )
         return parser
 
     @staticmethod
     def execute(machine: Optional[Machine], parsed: argparse.Namespace) -> bool:
-        # handle custom path
-        if parsed.path is not None:
-            parsed.workdir = os.path.abspath(parsed.path)
+        parsed.workdir = os.path.abspath(parsed.path)
 
         # make sure the path does not exist or it is empty
         if os.path.exists(parsed.workdir) and any(os.scandir(parsed.workdir)):
@@ -73,9 +70,16 @@ class CLICreateCommand(AbstractCLICommand):
         print("   |")
         for key in ["name", "description", "organization", "maintainer"]:
             info = surgery[key]
+            default = ""
+            title = info["title"]
+            # suggest a project name given the path name
+            if key == "name":
+                default = os.path.basename(parsed.workdir)
+                title = f"{info['title']} [{default}]"
+            # ---
             done = False
             while not done:
-                res = input(f"   |\t{info['title']}: ")
+                res = input(f"   |\t{title}: ") or default
                 if not re.match(info['pattern'], res):
                     cpklogger.error(f"\tField '{info['title']}' must be {info['pattern_human']}.")
                     continue
