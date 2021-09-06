@@ -82,7 +82,7 @@ setup(
     include_package_data=True,
     keywords=['code', 'container', 'containerization', 'package', 'toolkit', 'docker'],
     install_requires=[
-        'docker',
+        'docker>=4.4.0',
         'requests',
         'jsonschema',
         'termcolor',
