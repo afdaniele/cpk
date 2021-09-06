@@ -5,9 +5,8 @@ import subprocess
 from shutil import which
 from typing import Optional, Callable
 
-from cpk.utils.misc import configure_binfmt
-
 import cpk
+from cpk.utils.misc import configure_binfmt
 from .endpoint import CLIEndpointInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
@@ -22,6 +21,8 @@ class CLIDecorateCommand(AbstractCLICommand):
                          r"(?:[0-9a-z-]+[/@])(?:([0-9a-z-]+))[/@]?(?:([0-9a-z-]+))?" \
                          r"(?::[a-z0-9\\.-]+)?$"
     EMAIL_ADDRESS_REGEX = r"^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$"
+    DOCKER_IMAGE_ERROR_MSG = "The pattern must be: [registry/]owner/repository[:tag]"
+    EMAIL_ADDRESS_ERROR_MSG = "The pattern must be: 'user@domain.tld'"
 
     @staticmethod
     def parser(parent: Optional[argparse.ArgumentParser] = None,
@@ -33,14 +34,16 @@ class CLIDecorateCommand(AbstractCLICommand):
             dest="input",
             metavar="INPUT",
             help="The input image",
-            type=regex_type(CLIDecorateCommand.DOCKER_IMAGE_REGEX)
+            type=regex_type(CLIDecorateCommand.DOCKER_IMAGE_REGEX,
+                            CLIDecorateCommand.DOCKER_IMAGE_ERROR_MSG)
         )
         parser.add_argument(
             nargs=1,
             dest="output",
             metavar="OUTPUT",
             help="The output image",
-            type=regex_type(CLIDecorateCommand.DOCKER_IMAGE_REGEX)
+            type=regex_type(CLIDecorateCommand.DOCKER_IMAGE_REGEX,
+                            CLIDecorateCommand.DOCKER_IMAGE_ERROR_MSG)
         )
         parser.add_argument(
             "-m",
@@ -54,7 +57,8 @@ class CLIDecorateCommand(AbstractCLICommand):
             "--email",
             default=None,
             help="The image maintainer's email address",
-            type=regex_type(CLIDecorateCommand.EMAIL_ADDRESS_REGEX)
+            type=regex_type(CLIDecorateCommand.EMAIL_ADDRESS_REGEX,
+                            CLIDecorateCommand.EMAIL_ADDRESS_ERROR_MSG)
         )
         parser.add_argument(
             "--no-multiarch",
@@ -154,10 +158,10 @@ class CLIDecorateCommand(AbstractCLICommand):
         return True
 
 
-def regex_type(pattern: str) -> Callable[[str], str]:
+def regex_type(pattern: str, error_msg: str) -> Callable[[str], str]:
     def _validator(value: str) -> str:
         if not re.compile(pattern).match(value):
-            raise argparse.ArgumentTypeError
+            raise argparse.ArgumentTypeError(f"\n\t{error_msg}")
         return value
 
     # ---
