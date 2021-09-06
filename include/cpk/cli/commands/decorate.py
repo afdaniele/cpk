@@ -16,10 +16,10 @@ from ...types import DockerImageName, Machine, Arguments
 class CLIDecorateCommand(AbstractCLICommand):
     KEY = 'decorate'
 
-    DOCKER_IMAGE_REGEX = r"^((?:(?:[a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*" \
-                         r"(?:[a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9]))(?::([0-9]+)\\/)?" \
-                         r"(?:[0-9a-z-]+[/@])(?:([0-9a-z-]+))[/@]?(?:([0-9a-z-]+))?" \
-                         r"(?::[a-z0-9\\.-]+)?$"
+    DOCKER_IMAGE_REGEX = r"^(([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])\.)*" \
+                         r"([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])" \
+                         r"(:[0-9]+\/)?([0-9a-z-]+[/@]?)([0-9a-z-]+)" \
+                         r"[/@]?([0-9a-z-]+)?(:[a-z0-9\.-]+)?$"
     EMAIL_ADDRESS_REGEX = r"^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$"
     DOCKER_IMAGE_ERROR_MSG = "The pattern must be: [registry/]owner/repository[:tag]"
     EMAIL_ADDRESS_ERROR_MSG = "The pattern must be: 'user@domain.tld'"
