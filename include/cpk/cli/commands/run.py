@@ -285,10 +285,10 @@ class CLIRunCommand(AbstractCLICommand):
             environment.extend(["-e", f"CPK_LAUNCHER={parsed.launcher}"])
 
         cmd_option = [] if not parsed.cmd else [parsed.cmd]
-        cmd_arguments = (
-            [] if not parsed.arguments else ["--"] + list(
-                map(lambda s: "--%s" % s, parsed.arguments))
-        )
+        cmd_arguments = [] if not parsed.arguments else ["--"]
+
+        for argval in parsed.arguments:
+            cmd_arguments += f"--{argval}".split("=")
 
         # endpoint arguments
         docker_epoint_args = []
