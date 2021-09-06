@@ -146,7 +146,7 @@ class DockerImageName:
         # add - repository
         name += self.repository
         # add - tag
-        if self.tag != defaults.tag:
+        if self.tag != defaults.tag or self.arch:
             name += f":{self.tag}"
         # add - arch
         if self.arch:
