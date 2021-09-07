@@ -5,6 +5,12 @@ if [ "${CPK_ENTRYPOINT_SOURCED}" != "1" ]; then
     source ${CPK_INSTALL_DIR}/entrypoint.sh
 fi
 
+cpk-debug() {
+    if [ "${DEBUG}" = "1" ]; then
+        echo "DEBUG: $1"
+    fi
+}
+
 cpk-utils-terminate() {
     # send SIGINT signal to monitored process
     kill -INT $(pgrep -P $$) 2>/dev/null

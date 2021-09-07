@@ -59,17 +59,24 @@ export CPK_ENTRYPOINT_SOURCED
 # if anything weird happens from now on, CONTINUE
 set +e
 
-cpk-debug "<== Entrypoint"
-
 # exit if this file is just being sourced
 if [ "$0" != "${BASH_SOURCE[0]}" ]; then
+    cpk-debug "=> Sourcing ${BASH_SOURCE[0]}..."
+    cpk-debug "<= File ${BASH_SOURCE[0]} sourced!"
+    cpk-debug "<== Entrypoint"
     return
 fi
 
 # reuse CPK_LAUNCHER as CMD if the var is set and the first argument is `--`
 if [ ${#CPK_LAUNCHER} -gt 0 ] && [ "$1" == "--" ]; then
     shift
+    # exec launcher
+    cpk-debug "=> Executing launcher '${CPK_LAUNCHER}'"
+    cpk-debug "<== Entrypoint"
     exec bash -c "launcher-$CPK_LAUNCHER $*"
 else
+    # just exec the given arguments
+    cpk-debug "=> Executing command '$*'"
+    cpk-debug "<== Entrypoint"
     exec "$@"
 fi

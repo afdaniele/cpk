@@ -130,8 +130,11 @@ RUN cpk-install-launchers "${PROJECT_LAUNCHERS_PATH}"
 # copy setup file
 COPY ./setup.sh ${PROJECT_PATH}/
 
-# source environment on every bash session
+# set CPK environment
+# - for interactive bash sessions
 RUN echo "source ${CPK_INSTALL_DIR}/environment.sh" >> ~/.bashrc
+# - for non-interactive bash sessions
+ENV BASH_ENV ${CPK_INSTALL_DIR}/environment.sh
 
 # configure entrypoint
 ENTRYPOINT ["/cpk/entrypoint.sh"]
