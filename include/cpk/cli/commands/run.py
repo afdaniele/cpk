@@ -4,6 +4,7 @@ import shutil
 import subprocess
 from typing import Optional
 
+from cpk.machine import SSHMachine
 from docker.errors import ImageNotFound
 
 from xdocker import get_configuration
@@ -22,6 +23,7 @@ SUPPORTED_SUBCOMMANDS = [
     "attach"
 ]
 TRIGGERS = {CPKFileMappingTrigger.DEFAULT, CPKFileMappingTrigger.RUN_MOUNT}
+RSYNC_DESTINATION_PATH = "/tmp/"
 
 
 class CLIRunCommand(AbstractCLICommand):
@@ -118,6 +120,13 @@ class CLIRunCommand(AbstractCLICommand):
             default=False,
             action="store_true",
             help="Sync code from local project to remote"
+        )
+        parser.add_argument(
+            "-sm",
+            "--sync-mirror",
+            default=False,
+            action="store_true",
+            help="Mirror code from local project to remote"
         )
         parser.add_argument(
             "--net", "--network_mode",
@@ -237,18 +246,18 @@ class CLIRunCommand(AbstractCLICommand):
         if parsed.network_mode is not None:
             module_configuration_args.append(f"--net={parsed.network_mode}")
 
-        # mount code
         # mount source code (if requested)
+        projects_to_mount = []
         if mount_source:
             # (always) mount current project
-            projects_to_mount = [parsed.workdir] if parsed.mount is True else []
+            paths_to_mount = [parsed.workdir] if parsed.mount is True else []
             # mount secondary projects
             if isinstance(parsed.mount, str):
-                projects_to_mount.extend(
+                paths_to_mount.extend(
                     [os.path.join(os.getcwd(), p.strip()) for p in parsed.mount.split(",")]
                 )
             # create mount points definitions
-            for project_path in projects_to_mount:
+            for project_path in paths_to_mount:
                 # make sure that the project exists
                 if not os.path.isdir(project_path):
                     cpklogger.error('The path "{:s}" is not a CPK project'.format(project_path))
@@ -259,11 +268,53 @@ class CLIRunCommand(AbstractCLICommand):
                 except NotACPKProjectException:
                     cpklogger.error(f"The path '{project_path}' does not contain a CPK project.")
                     return False
+                projects_to_mount.append(proj)
+
+        # sync
+        sync_remote = parsed.sync or parsed.sync_mirror
+        if sync_remote:
+            # does not make sense to rsync without mounting
+            if not mount_source:
+                cpklogger.error("The options -s/--sync, -sm/--sync-mirror can only be used "
+                                "together with -M/--mount")
+                return False
+            # only allowed when mounting remotely
+            if machine.is_local:
+                cpklogger.error("The options -s/--sync, -sm/--sync-mirror can only be used "
+                                "together with -H/--machine")
+                return False
+            # only allowed with SSH machines
+            if not isinstance(machine, SSHMachine):
+                cpklogger.error("The options -s/--sync, -sm/--sync-mirror can only be used "
+                                "with SSH-based machines")
+                return False
+            # make sure rsync is installed
+            if shutil.which("rsync") is None:
+                cpklogger.error("The options -s/--sync, -sm/--sync-mirror requires the 'rsync' "
+                                "tool. Please, install it and retry.")
+                return False
+            # ---
+            cpklogger.info(f"Syncing code...")
+            remote_uri = f"{machine.user}@{machine.host}:{RSYNC_DESTINATION_PATH.rstrip('/')}"
+            # rsync options
+            rsync_options = "" if not parsed.sync_mirror else "--delete"
+            # run rsync
+            for proj in projects_to_mount:
+                remote_path = f"{remote_uri}/{proj.name}".rstrip('/') + '/'
+                cmd = f"rsync --archive {rsync_options} {proj.path}/ {remote_path}"
+                _run_cmd(cmd, shell=True)
+            cpklogger.info(f"Code synced!")
+
+        # mount source code (if requested)
+        if mount_source:
+            for proj in projects_to_mount:
                 # iterate over list of mappings
                 for mapping in proj.mappings:
                     if TRIGGERS.intersection(set(mapping.triggers)):
+                        source_path = proj.path if not sync_remote else \
+                            os.path.join(RSYNC_DESTINATION_PATH, proj.name)
                         mpoint_source = mapping.source if os.path.isabs(mapping.source) else \
-                            os.path.join(project_path, mapping.source)
+                            os.path.join(source_path, mapping.source)
                         mpoint_destination = mapping.destination
                         # compile mounpoints
                         volumes += [

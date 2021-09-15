@@ -25,6 +25,10 @@ class FromEnvMachine(Machine):
     def __init__(self):
         super(FromEnvMachine, self).__init__("from-environment")
 
+    @property
+    def is_local(self) -> bool:
+        return True
+
     def get_client(self) -> DockerClient:
         return docker.from_env()
 
@@ -34,6 +38,11 @@ class TCPMachine(Machine):
 
     def __init__(self, name: str, host: str):
         super(TCPMachine, self).__init__(name, host)
+
+    @property
+    def is_local(self) -> bool:
+        hostname, *_ = self._base_url.split(":")
+        return hostname in ["tcp://localhost", "tcp://127.0.0.1", "tcp://127.0.1.1"]
 
     def get_client(self) -> DockerClient:
         try:
@@ -48,6 +57,10 @@ class UnixSocketMachine(TCPMachine):
     def __init__(self, name: str, host: str = "unix:///var/run/docker.sock"):
         super(UnixSocketMachine, self).__init__(name, host)
 
+    @property
+    def is_local(self) -> bool:
+        return True
+
 
 class SSHMachine(Machine):
     type: str = "ssh"
@@ -59,6 +72,10 @@ class SSHMachine(Machine):
             "port": int(port) if port is not None else 22,
         }
         super(SSHMachine, self).__init__(name, configuration=config)
+
+    @property
+    def is_local(self) -> bool:
+        return False
 
     @property
     def user(self) -> str:

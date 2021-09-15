@@ -298,6 +298,11 @@ class Machine(abc.ABC):
         return self._name
 
     @property
+    @abc.abstractmethod
+    def is_local(self) -> bool:
+        pass
+
+    @property
     def config_path(self) -> str:
         from cpk import cpkconfig
         return os.path.join(cpkconfig.path, "machines", self.name)
