@@ -238,7 +238,6 @@ class CLIRunCommand(AbstractCLICommand):
             module_configuration_args.append(f"--net={parsed.network_mode}")
 
         # mount code
-        mount_option = []
         # mount source code (if requested)
         if mount_source:
             # (always) mount current project
