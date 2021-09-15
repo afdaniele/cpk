@@ -6,6 +6,8 @@ from typing import Optional
 
 from docker.errors import ImageNotFound
 
+from xdocker import get_configuration
+
 from cpk import CPKProject
 from cpk.utils.misc import configure_binfmt
 from .endpoint import CLIEndpointInfoCommand
@@ -108,7 +110,7 @@ class CLIRunCommand(AbstractCLICommand):
             dest="use_x_docker",
             default=False,
             action="store_true",
-            help="Use x-docker as runtime",
+            help="Add X-Forwarding configuration (adds support for GUI applications)",
         )
         parser.add_argument(
             "-s",
@@ -201,27 +203,35 @@ class CLIRunCommand(AbstractCLICommand):
         #     )
         #     return True
 
+        # environment
+        environment = []
+        # volumes
+        volumes = []
+        # module configuration
+        module_configuration_args = []
+
         # print info about multiarch
         cpklogger.info("Running an image for {} on {}.".format(parsed.arch, machine_arch))
         # - register bin_fmt in the target machine (if needed)
         if not parsed.no_multiarch:
             configure_binfmt(machine_arch, parsed.arch, docker, cpklogger)
 
-        # ---
-        # TODO: this is wrong, x-docker should either be a Python package that gives us the
-        #  configuration for X-Forwarding on THIS computer, or a proper docker-runtime that
-        #  we can pass to the Python SDK for Docker
-        # x-docker runtime
+        # x-docker configuration
         if parsed.use_x_docker:
-            command_dir = os.path.dirname(os.path.abspath(__file__))
-            parsed.runtime = os.path.join(command_dir, "x-docker")
+            xconfig = get_configuration(docker)
+            # TODO: once we switch to the DOcker SDK for Python, we should use this directly
+            if "environment" in xconfig:
+                for ekey, evalue in xconfig["environment"].values():
+                    environment += ["-e", f"{ekey}={evalue}"]
+            if "volumes" in xconfig:
+                for vsrc, vdsc in xconfig["volumes"].values():
+                    volumes += ["-v", "{:s}:{:s}:{:s}".format(vsrc, vdsc["bind"], vdsc["mode"])]
+            if "runtime" in xconfig:
+                module_configuration_args.append(f"--runtime={xconfig['runtime']}")
+
         # check runtime
         if shutil.which(parsed.runtime) is None:
             raise ValueError('Docker runtime binary "{}" not found!'.format(parsed.runtime))
-        # ---
-
-        # create the module configuration
-        module_configuration_args = []
 
         # network mode
         if parsed.network_mode is not None:
@@ -257,7 +267,7 @@ class CLIRunCommand(AbstractCLICommand):
                             os.path.join(project_path, mapping.source)
                         mpoint_destination = mapping.destination
                         # compile mounpoints
-                        mount_option += [
+                        volumes += [
                             "-v", "{:s}:{:s}".format(mpoint_source, mpoint_destination)
                         ]
 
@@ -279,8 +289,7 @@ class CLIRunCommand(AbstractCLICommand):
         if parsed.cmd and parsed.launcher:
             raise ValueError("You cannot use the option --launcher together with --cmd.")
 
-        # environment
-        environment = []
+        # launcher
         if parsed.launcher:
             environment.extend(["-e", f"CPK_LAUNCHER={parsed.launcher}"])
 
@@ -308,6 +317,7 @@ class CLIRunCommand(AbstractCLICommand):
         parsed.docker_args += ["--name", parsed.name]
         # escape spaces in arguments
         parsed.docker_args = [a.replace(" ", "\\ ") for a in parsed.docker_args]
+
         # run
         exitcode = _run_cmd(
             [parsed.runtime]
@@ -316,7 +326,7 @@ class CLIRunCommand(AbstractCLICommand):
             + module_configuration_args
             + environment
             + parsed.docker_args
-            + mount_option
+            + volumes
             + [image]
             + cmd_option
             + cmd_arguments,

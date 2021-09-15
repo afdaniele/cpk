@@ -65,7 +65,6 @@ setup(
     package_data={
         "cpk": [
             "schemas/*/*.json",
-            "cli/commands/x-docker",
             *get_decorator_files(),
             *get_skeleton_files()
         ],
@@ -89,6 +88,7 @@ setup(
         'pyyaml',
         'sshconf',
         'cryptography',
+        'x-docker',
         *(['dataclasses'] if sys.version_info < (3, 7) else [])
     ],
     scripts=[
