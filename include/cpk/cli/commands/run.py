@@ -230,10 +230,10 @@ class CLIRunCommand(AbstractCLICommand):
             xconfig = get_configuration(docker)
             # TODO: once we switch to the DOcker SDK for Python, we should use this directly
             if "environment" in xconfig:
-                for ekey, evalue in xconfig["environment"].values():
+                for ekey, evalue in xconfig["environment"].items():
                     environment += ["-e", f"{ekey}={evalue}"]
             if "volumes" in xconfig:
-                for vsrc, vdsc in xconfig["volumes"].values():
+                for vsrc, vdsc in xconfig["volumes"].items():
                     volumes += ["-v", "{:s}:{:s}:{:s}".format(vsrc, vdsc["bind"], vdsc["mode"])]
             if "runtime" in xconfig:
                 module_configuration_args.append(f"--runtime={xconfig['runtime']}")
