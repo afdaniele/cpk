@@ -88,7 +88,7 @@ setup(
         'pyyaml',
         'sshconf',
         'cryptography',
-        'x-docker',
+        'x-docker>=0.0.2',
         *(['dataclasses'] if sys.version_info < (3, 7) else [])
     ],
     scripts=[
