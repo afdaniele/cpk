@@ -2,7 +2,9 @@
 
 # source entrypoint if it hasn't been done
 if [ "${CPK_ENTRYPOINT_SOURCED}" != "1" ]; then
-    source ${CPK_INSTALL_DIR}/entrypoint.sh
+    if [ "${CPK_IN_DOCKER_BUILD}" != "1" ]; then
+        source ${CPK_INSTALL_DIR}/entrypoint.sh
+    fi
 fi
 
 cpk-debug() {

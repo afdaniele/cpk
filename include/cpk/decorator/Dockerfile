@@ -155,3 +155,5 @@ LABEL \
     cpk.label.project.${ORGANIZATION}.${NAME}.maintainer="${MAINTAINER}" \
     cpk.label.cpk.version="${CPK_VERSION}" \
     cpk.label.architecture="${ARCH}"
+
+ONBUILD ARG CPK_IN_DOCKER_BUILD=1
