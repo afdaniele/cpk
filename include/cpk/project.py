@@ -150,7 +150,8 @@ class CPKProject:
         assert_canonical_arch(arch)
         docs = "-docs" if docs else ""
         version = re.sub(r"[^\w\-.]", "-", self.version.tag)
-        return f"{self.registry}/{self.organization}/{self.name}:{version}{docs}-{arch}"
+        image = f"{self.registry}/{self.organization}/{self.name}:{version}{docs}-{arch}"
+        return image.lower()
 
     def image_release(self, arch: str, docs: bool = False) -> str:
         if not self.is_release():
@@ -158,7 +159,8 @@ class CPKProject:
         assert_canonical_arch(arch)
         docs = "-docs" if docs else ""
         version = re.sub(r"[^\w\-.]", "-", self.version.head)
-        return f"{self.registry}/{self.organization}/{self.name}:{version}{docs}-{arch}"
+        image = f"{self.registry}/{self.organization}/{self.name}:{version}{docs}-{arch}"
+        return image.lower()
 
     def configurations(self) -> dict:
         configurations = {}
