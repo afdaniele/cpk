@@ -14,9 +14,7 @@
         "version": {
             "type": "string",
             "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(\\.(?:0|[1-9]\\d*))?$"
-        }
-    },
-    "patternProperties": {
+        },
         "mappings": {
             "type": "array",
             "items": {
@@ -79,5 +77,10 @@
             "additionalProperties": false
         }
     },
+    "required": [
+        "schema",
+        "name",
+        "version"
+    ],
     "additionalProperties": false
 }

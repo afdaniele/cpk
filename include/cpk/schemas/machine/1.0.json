@@ -18,14 +18,12 @@
         },
         "configuration": {
             "type": "object"
-        }
-    },
-    "required": ["version", "type", "configuration"],
-    "patternProperties": {
+        },
         "description": {
             "type": "string"
         }
     },
+    "required": ["version", "type", "configuration"],
     "allOf": [
         {
             "if": {

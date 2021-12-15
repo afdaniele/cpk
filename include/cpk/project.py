@@ -243,6 +243,8 @@ class CPKProject:
     def _from_adapters(self, key: str, default: Any = None) -> Any:
         for priority in sorted(self._adapters.keys(), reverse=True):
             adapter = self._adapters[priority]
+            if not adapter.enabled:
+                continue
             value = getattr(adapter, key)
             if value is not None:
                 return value
@@ -319,7 +321,7 @@ class CPKProject:
             template=template,
             version=data.get("version", None),
             registry=data.get("registry", None),
-            tag=data.get("version", None),
+            tag=data.get("tag", None),
             mappings=list(map(lambda m: CPKFileMapping.from_dict(m), data.get('mappings', [])))
         )
 

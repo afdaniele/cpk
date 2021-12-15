@@ -11,7 +11,7 @@ examples_dir = lambda e: \
     os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "examples", e))
 
 
-class TestExampleProjectBasic(unittest.TestCase):
+class TestBuildProjectBasic(unittest.TestCase):
 
     def setUp(self):
         self._project_dir = examples_dir("basic")
