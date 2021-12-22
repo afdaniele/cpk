@@ -18,7 +18,7 @@ class ProjectFileAdapter(NullAdapter):
 
     @property
     def registry(self) -> str:
-        return self._info.registry
+        return self._info.registry or "docker.io"
 
     @property
     def organization(self) -> str:

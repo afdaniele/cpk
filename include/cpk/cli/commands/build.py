@@ -282,7 +282,7 @@ class CLIBuildCommand(AbstractCLICommand):
 
         # tag release images
         if project.is_release():
-            rimage = project.image_release(parsed.arch)
+            rimage = project.image_release(parsed.arch, avoid_defaults=True)
             dimage.tag(*rimage.split(":"))
             msg = f"Successfully tagged {rimage}"
             buildlog.append(msg)

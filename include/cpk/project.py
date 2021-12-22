@@ -19,6 +19,7 @@ from .exceptions import NotACPKProjectException, InvalidCPKProjectFile, \
     CPKProjectSchemaNotSupported, CPKMissingResourceException
 from .schemas import get_project_schema
 from .types import CPKProjectInfo, GitRepository, CPKTemplateInfo, CPKFileMapping, Machine
+from .utils.docker import DEFAULT_REGISTRY
 from .utils.git import get_repo_info
 from .utils.misc import assert_canonical_arch, parse_configurations, cpk_label
 
@@ -153,13 +154,16 @@ class CPKProject:
         image = f"{self.registry}/{self.organization}/{self.name}:{version}{docs}-{arch}"
         return image.lower()
 
-    def image_release(self, arch: str, docs: bool = False) -> str:
+    def image_release(self, arch: str, docs: bool = False, avoid_defaults: bool = False) -> str:
         if not self.is_release():
             raise ValueError("The project repository is not in a release state")
         assert_canonical_arch(arch)
         docs = "-docs" if docs else ""
         version = re.sub(r"[^\w\-.]", "-", self.version.head)
-        image = f"{self.registry}/{self.organization}/{self.name}:{version}{docs}-{arch}"
+        image = f"{self.organization}/{self.name}:{version}{docs}-{arch}"
+        registry = self.registry
+        if not avoid_defaults or registry != DEFAULT_REGISTRY:
+            image = f"{self.registry}/{image}"
         return image.lower()
 
     def configurations(self) -> dict:
