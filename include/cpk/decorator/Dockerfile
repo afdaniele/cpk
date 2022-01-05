@@ -136,6 +136,14 @@ RUN echo "source ${CPK_INSTALL_DIR}/environment.sh" >> ~/.bashrc
 # - for non-interactive bash sessions
 ENV BASH_ENV ${CPK_INSTALL_DIR}/environment.sh
 
+# constants
+RUN echo "\
+export CPK_CODE_DIR=\"${CPK_CODE_DIR}\" \n\
+export CPK_SOURCE_DIR=\"${CPK_SOURCE_DIR}\" \n\
+export CPK_LAUNCHERS_DIR=\"${CPK_LAUNCHERS_DIR}\" \n\
+export CPK_INSTALL_DIR=\"${CPK_INSTALL_DIR}\" \
+" > "${CPK_INSTALL_DIR}/constants.sh"
+
 # configure entrypoint
 ENTRYPOINT ["/cpk/entrypoint.sh"]
 

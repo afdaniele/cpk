@@ -4,7 +4,7 @@
 set -e
 
 cpk-debug() {
-    if [ "${DEBUG}" = "1" ]; then
+    if [ "${DEBUG:-0}" = "1" ]; then
         echo "DEBUG: $1"
     fi
 }
@@ -43,25 +43,26 @@ cpk-configure-projects() {
     done
 }
 
-# configure
-cpk-debug "=> Setting up PYTHONPATH..."
-cpk-configure-python
-cpk-debug "<= Done!\n"
+if [ "${CPK_ENTRYPOINT_SOURCED:-0}" != "1" ]; then
+    # configure
+    cpk-debug "=> Setting up PYTHONPATH..."
+    cpk-configure-python
+    cpk-debug "<= Done!\n"
 
-cpk-debug "=> Setting up projects..."
-cpk-configure-projects
-cpk-debug "<= Done!\n"
+    cpk-debug "=> Setting up projects..."
+    cpk-configure-projects
+    cpk-debug "<= Done!\n"
 
-# mark this file as sourced
-CPK_ENTRYPOINT_SOURCED=1
-export CPK_ENTRYPOINT_SOURCED
+    # mark this file as sourced
+    CPK_ENTRYPOINT_SOURCED=1
+    export CPK_ENTRYPOINT_SOURCED
+fi
 
 # if anything weird happens from now on, CONTINUE
 set +e
 
 # exit if this file is just being sourced
 if [ "$0" != "${BASH_SOURCE[0]}" ]; then
-    cpk-debug "=> Sourcing ${BASH_SOURCE[0]}..."
     cpk-debug "<= File ${BASH_SOURCE[0]} sourced!"
     cpk-debug "<== Entrypoint"
     return

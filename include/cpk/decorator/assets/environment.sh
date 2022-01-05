@@ -1,14 +1,17 @@
 #!/bin/bash
 
+# NOTE: do not use variables here
+source "/cpk/constants.sh"
+
 # source entrypoint if it hasn't been done
-if [ "${CPK_ENTRYPOINT_SOURCED}" != "1" ]; then
-    if [ "${CPK_IN_DOCKER_BUILD}" != "1" ]; then
-        source ${CPK_INSTALL_DIR}/entrypoint.sh
+if [ "${CPK_ENTRYPOINT_SOURCED:-0}" != "1" ]; then
+    if [ "${CPK_IN_DOCKER_BUILD:-0}" != "1" ]; then
+        source "${CPK_INSTALL_DIR}/entrypoint.sh"
     fi
 fi
 
 cpk-debug() {
-    if [ "${DEBUG}" = "1" ]; then
+    if [ "${DEBUG:-0}" = "1" ]; then
         echo "DEBUG: $1"
     fi
 }
