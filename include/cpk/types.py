@@ -133,11 +133,11 @@ class DockerImageName:
     tag: str = "latest"
     arch: Optional[str] = None
 
-    def compile(self) -> str:
+    def compile(self, allow_defaults: bool = False) -> str:
         name = ""
         defaults = DockerImageName("_")
         # add - registry
-        registry = self.registry.compile()
+        registry = self.registry.compile(allow_defaults=allow_defaults)
         if registry:
             name += f"{registry}/"
         # add - user
@@ -182,6 +182,13 @@ class DockerImageName:
             image.registry.hostname, image.registry.port, *_ = registry.split(':') + [5000]
         # ---
         return image
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return other == self.compile() or other == self.compile(allow_defaults=True)
+        elif isinstance(other, DockerImageName):
+            return other.compile(allow_defaults=True) == self.compile(allow_defaults=True)
+        return False
 
     def __str__(self) -> str:
         return f"""\
