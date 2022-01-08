@@ -286,7 +286,7 @@ class CLIBuildCommand(AbstractCLICommand):
             dimage.tag(*rimage.split(":"))
             msg = f"Successfully tagged {rimage}"
             buildlog.append(msg)
-            cpklogger.print(msg)
+            print(msg)
 
         # TODO: fix this
         # # build code docs

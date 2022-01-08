@@ -33,4 +33,4 @@ class CLIEndpointInfoCommand(AbstractCLICommand):
             cpklogger.error("\n".join(epoint["ServerErrors"]))
             return False
         epoint["MemTotal"] = human_size(epoint["MemTotal"])
-        cpklogger.print(DOCKER_INFO.format(**epoint))
+        print(DOCKER_INFO.format(**epoint))

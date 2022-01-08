@@ -8,7 +8,7 @@ from cpk import cpkconfig
 from cpk.cli.commands.create import CLICreateCommand
 from cpk.exceptions import CPKException
 
-from cpk.cli.logger import cpklogger
+from cpk.cli.logger import cpklogger, update_logger
 from cpk.cli.commands.info import CLIInfoCommand
 from cpk.cli.commands.build import CLIBuildCommand
 from cpk.cli.commands.run import CLIRunCommand
@@ -55,7 +55,7 @@ def run():
     parsed.workdir = os.path.abspath(parsed.workdir)
     # enable debug
     if parsed.debug:
-        cpklogger.setLevel(logging.DEBUG)
+        update_logger(logging.DEBUG)
     # get machine
     machine = get_machine(parsed, cpkconfig.machines)
     # avoid commands using `parsed.machine`

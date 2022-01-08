@@ -60,7 +60,7 @@ class CLIInfoCommand(AbstractCLICommand):
             "space": tc.colored("  ", "grey", "on_white"),
             "end": tc.colored("________", "grey", "on_white"),
         }
-        cpklogger.print(PROJECT_INFO.format(**info))
+        print(PROJECT_INFO.format(**info))
 
         # ---
         return True
