@@ -1,5 +1,4 @@
 import argparse
-import time
 from typing import Optional
 
 from docker.errors import APIError
@@ -11,6 +10,7 @@ from ... import CPKProject
 from ...exceptions import CPKProjectPushException
 from ...types import Machine, Arguments
 from ...utils.cli import check_git_status
+from ...utils.docker import push_image
 
 
 class CLIPushCommand(AbstractCLICommand):
@@ -37,8 +37,6 @@ class CLIPushCommand(AbstractCLICommand):
 
     @staticmethod
     def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
-        stime = time.time()
-
         # get project
         project = CPKProject(parsed.workdir, parsed=parsed)
 
@@ -59,9 +57,6 @@ class CLIPushCommand(AbstractCLICommand):
             parsed.arch = machine.get_architecture()
             cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
 
-        # create docker client
-        docker = machine.get_client()
-
         # create defaults
         image = project.image(parsed.arch)
 
@@ -71,15 +66,7 @@ class CLIPushCommand(AbstractCLICommand):
 
         # push image
         try:
-            for line in docker.api.push(image, decode=True):
-                line = _push_line(line)
-                print(line)
-                # if not line:
-                #     continue
-                # try:
-                #     sys.stdout.write(line)
-                # except UnicodeEncodeError:
-                #     pass
+            push_image(machine, image, progress=True)
         except APIError as e:
             cpklogger.error(f"An error occurred while pushing the project image:\n{str(e)}")
             return False
@@ -88,20 +75,3 @@ class CLIPushCommand(AbstractCLICommand):
             return False
 
         cpklogger.info("Image pushed successfully!")
-
-
-def _push_line(line):
-    if "error" in line and "errorDetail" in line:
-        msg = line["errorDetail"]["message"]
-        cpklogger.error(msg)
-        raise CPKProjectPushException(msg)
-    if "stream" not in line:
-        return None
-    line = line["stream"].strip("\n")
-    if not line:
-        return None
-    # this allows apps inside docker build to clear lines
-    if not line.endswith("\r"):
-        line += "\n"
-    # ---
-    return line
