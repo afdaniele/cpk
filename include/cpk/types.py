@@ -430,6 +430,11 @@ Machine:
     URL:\t{}
 """.format(type(self).__name__, self.name, self.base_url)
 
+    def __eq__(self, other):
+        if not isinstance(other, Machine):
+            return False
+        return other.base_url == self.base_url
+
 
 @dataclasses.dataclass
 class CPKConfiguration:
