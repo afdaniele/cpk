@@ -12,6 +12,8 @@ PACKAGES=$(awk -F: '/^[^#]/ { print $1 }' $PACKAGES_LIST | uniq)
 HAS_PACKAGES=$(echo $PACKAGES | sed '/^\s*#/d;/^\s*$/d' | wc -l)
 
 if [ $HAS_PACKAGES -eq 1 ]; then
+    # replace variables
+    PACKAGES=$(eval echo $PACKAGES)
     echo "Installing packages via PIP3..."
     pip3 install -r ${PACKAGES_LIST}
 else
