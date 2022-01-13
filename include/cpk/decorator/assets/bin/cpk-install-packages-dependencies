@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -eu
+
+# install dependencies declared by packages
+if [ -d "${CPK_PROJECT_PATH}/packages" ]; then
+    # install apt dependencies declared by packages
+    for candidate_deps_apt in $(find ${CPK_PROJECT_PATH}/packages/*/dependencies-apt.txt -type f -printf "%p\n" | awk '{print $1}'); do
+        package_name="$(basename $(dirname ${candidate_deps_apt}))"
+        echo " > Installing APT dependencies for package '${package_name}'..."
+        cpk-apt-install "${candidate_deps_apt}"
+        echo " < APT dependencies for package '${package_name}' installed successfully!"
+    done
+
+    # install py3 dependencies declared by packages
+    for candidate_deps_py3 in $(find ${CPK_PROJECT_PATH}/packages/*/dependencies-py3.txt -type f -printf "%p\n" | awk '{print $1}'); do
+        package_name="$(basename $(dirname ${candidate_deps_py3}))"
+        echo " > Installing PY3 dependencies for package '${package_name}'..."
+        cpk-pip3-install "${candidate_deps_py3}"
+        echo " < PY3 dependencies for package '${package_name}' installed successfully!"
+    done
+fi

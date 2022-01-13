@@ -68,6 +68,9 @@ COPY ./packages "${CPK_PROJECT_PATH}/packages"
 RUN catkin build \
     --workspace ${CPK_CODE_DIR}
 
+# install packages dependencies
+RUN cpk-install-packages-dependencies
+
 # define default command
 CMD ["bash", "-c", "launcher-${CPK_LAUNCHER}"]
 
