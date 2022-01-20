@@ -2,7 +2,8 @@ import argparse
 import os
 import shutil
 import subprocess
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Dict
 
 from cpk.machine import SSHMachine
 from docker.errors import ImageNotFound
@@ -16,7 +17,7 @@ from .info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
 from ...exceptions import NotACPKProjectException
-from ...types import CPKFileMappingTrigger, Machine, Arguments
+from ...types import CPKFileMappingTrigger, Machine, Arguments, CPKFileMapping
 from ...utils.cli import check_git_status
 
 SUPPORTED_SUBCOMMANDS = [
@@ -307,6 +308,33 @@ class CLIRunCommand(AbstractCLICommand):
                 _run_cmd(cmd, shell=True)
             cpklogger.info(f"Code synced!")
 
+        # mountpoints
+        mountpoints: Dict[str, str] = {}
+
+        def _mount(_proj: CPKProject, _mapping: CPKFileMapping):
+            source_path = _proj.path if not sync_remote else \
+                os.path.join(RSYNC_DESTINATION_PATH, _proj.name)
+            mpoint_source = _mapping.source if os.path.isabs(_mapping.source) else \
+                os.path.join(source_path, _mapping.source)
+            mpoint_destination = _mapping.destination
+            mode = _mapping.mode
+            # resolve paths
+            mpoint_source = str(Path(mpoint_source).resolve())
+            mpoint_destination = str(Path(mpoint_destination).resolve())
+            # make sure we have no conflicts of mountpoints
+            conflict = mountpoints.get(mpoint_destination, None)
+            if conflict not in [None, mpoint_source]:
+                cpklogger.error(f"Mountpoint '{mpoint_destination}' inside the container "
+                                f"wants to be claimed by both '{conflict}' and "
+                                f"'{mpoint_source}'.")
+                return False
+            # compile mounpoints and add them to list
+            volumes.extend([
+                "-v", "{:s}:{:s}:{:s}".format(mpoint_source, mpoint_destination, mode)
+            ])
+            mountpoints[mpoint_destination] = mpoint_source
+            return True
+
         # mount source code (if requested)
         if mount_source:
             for proj in projects_to_mount:
@@ -315,16 +343,9 @@ class CLIRunCommand(AbstractCLICommand):
                     if CPKFileMappingTrigger.RUN_MOUNT not in mapping.triggers:
                         continue
                     # ---
-                    source_path = proj.path if not sync_remote else \
-                        os.path.join(RSYNC_DESTINATION_PATH, proj.name)
-                    mpoint_source = mapping.source if os.path.isabs(mapping.source) else \
-                        os.path.join(source_path, mapping.source)
-                    mpoint_destination = mapping.destination
-                    mode = mapping.mode
-                    # compile mounpoints
-                    volumes += [
-                        "-v", "{:s}:{:s}:{:s}".format(mpoint_source, mpoint_destination, mode)
-                    ]
+                    success = _mount(proj, mapping)
+                    if not success:
+                        return False
 
         # default mappings
         for proj in projects_to_mount:
@@ -335,16 +356,9 @@ class CLIRunCommand(AbstractCLICommand):
                 if mount_source and CPKFileMappingTrigger.RUN_MOUNT in mapping.triggers:
                     continue
                 # ---
-                source_path = proj.path if not sync_remote else \
-                    os.path.join(RSYNC_DESTINATION_PATH, proj.name)
-                mpoint_source = mapping.source if os.path.isabs(mapping.source) else \
-                    os.path.join(source_path, mapping.source)
-                mpoint_destination = mapping.destination
-                mode = mapping.mode
-                # compile mounpoints
-                volumes += [
-                    "-v", "{:s}:{:s}:{:s}".format(mpoint_source, mpoint_destination, mode)
-                ]
+                success = _mount(proj, mapping)
+                if not success:
+                    return False
 
         # pulling image (if requested)
         if parsed.pull or parsed.force_pull:
