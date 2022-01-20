@@ -5,7 +5,7 @@ from typing import Optional, Type
 
 from cpk import cpkconfig
 from cpk.cli import AbstractCLICommand, cpklogger
-from cpk.machine import SSHMachine
+from cpk.machine import SSHMachine, TCPMachine
 from cpk.types import Machine, Arguments
 
 
@@ -21,6 +21,11 @@ _valid_targets = {
         pattern=r"^(ssh\:\/\/)?(?P<user>.*?)@(?P<host>[^:]+?)(?::(?P<port>[0-9]+))?$",
         explanation="user@host[:port]",
         cls=SSHMachine
+    ),
+    "tcp": MachineTarget(
+        pattern=r"^(tcp\:\/\/)?(?P<host>[^:]+?)(?::(?P<port>[0-9]+))?$",
+        explanation="host[:port]",
+        cls=TCPMachine
     ),
 }
 

@@ -36,7 +36,9 @@ class FromEnvMachine(Machine):
 class TCPMachine(Machine):
     type: str = "tcp"
 
-    def __init__(self, name: str, host: str):
+    def __init__(self, name: str, host: str, port: Optional[Union[int, str]] = None):
+        if port is not None:
+            host = f"{host}:{port}"
         super(TCPMachine, self).__init__(name, host)
 
     @property
