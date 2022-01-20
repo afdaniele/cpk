@@ -49,9 +49,7 @@
                     },
                     "destination": {
                         "type": "string"
-                    }
-                },
-                "patternProperties": {
+                    },
                     "triggers": {
                         "type": "array",
                         "items": {
@@ -64,8 +62,19 @@
                     },
                     "required": {
                         "type": "boolean"
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": [
+                            "ro",
+                            "rw"
+                        ]
                     }
                 },
+                "required": [
+                    "source",
+                    "destination"
+                ],
                 "additionalProperties": false
             }
         }

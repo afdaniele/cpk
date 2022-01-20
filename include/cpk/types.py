@@ -211,6 +211,7 @@ class CPKFileMapping:
     destination: str
     triggers: List[CPKFileMappingTrigger]
     required: bool
+    mode: str = "rw"
 
     def __copy__(self):
         return self.__deepcopy__({})
@@ -220,7 +221,8 @@ class CPKFileMapping:
             source=self.source,
             destination=self.destination,
             triggers=copy.deepcopy(self.triggers),
-            required=self.required
+            required=self.required,
+            mode=self.mode
         )
 
     @staticmethod
@@ -229,7 +231,8 @@ class CPKFileMapping:
             source=data['source'],
             destination=data['destination'],
             triggers=list(map(CPKFileMappingTrigger, data.get('triggers', ["default"]))),
-            required=data.get('required', False)
+            required=data.get('required', False),
+            mode=data.get('mode', "rw")
         )
 
 
