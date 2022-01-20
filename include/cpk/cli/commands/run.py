@@ -247,8 +247,8 @@ class CLIRunCommand(AbstractCLICommand):
             module_configuration_args.append(f"--net={parsed.network_mode}")
 
         # mount source code (if requested)
-        projects_to_mount = []
         if mount_source:
+            projects_to_mount = []
             # (always) mount current project
             paths_to_mount = [parsed.workdir] if parsed.mount is True else []
             # mount secondary projects
@@ -269,6 +269,8 @@ class CLIRunCommand(AbstractCLICommand):
                     cpklogger.error(f"The path '{project_path}' does not contain a CPK project.")
                     return False
                 projects_to_mount.append(proj)
+        else:
+            projects_to_mount = [project]
 
         # sync
         sync_remote = parsed.sync or parsed.sync_mirror
@@ -310,16 +312,39 @@ class CLIRunCommand(AbstractCLICommand):
             for proj in projects_to_mount:
                 # iterate over list of mappings
                 for mapping in proj.mappings:
-                    if TRIGGERS.intersection(set(mapping.triggers)):
-                        source_path = proj.path if not sync_remote else \
-                            os.path.join(RSYNC_DESTINATION_PATH, proj.name)
-                        mpoint_source = mapping.source if os.path.isabs(mapping.source) else \
-                            os.path.join(source_path, mapping.source)
-                        mpoint_destination = mapping.destination
-                        # compile mounpoints
-                        volumes += [
-                            "-v", "{:s}:{:s}".format(mpoint_source, mpoint_destination)
-                        ]
+                    if CPKFileMappingTrigger.RUN_MOUNT not in mapping.triggers:
+                        continue
+                    # ---
+                    source_path = proj.path if not sync_remote else \
+                        os.path.join(RSYNC_DESTINATION_PATH, proj.name)
+                    mpoint_source = mapping.source if os.path.isabs(mapping.source) else \
+                        os.path.join(source_path, mapping.source)
+                    mpoint_destination = mapping.destination
+                    mode = mapping.mode
+                    # compile mounpoints
+                    volumes += [
+                        "-v", "{:s}:{:s}:{:s}".format(mpoint_source, mpoint_destination, mode)
+                    ]
+
+        # default mappings
+        for proj in projects_to_mount:
+            # iterate over list of mappings
+            for mapping in proj.mappings:
+                if CPKFileMappingTrigger.DEFAULT not in mapping.triggers:
+                    continue
+                if mount_source and CPKFileMappingTrigger.RUN_MOUNT in mapping.triggers:
+                    continue
+                # ---
+                source_path = proj.path if not sync_remote else \
+                    os.path.join(RSYNC_DESTINATION_PATH, proj.name)
+                mpoint_source = mapping.source if os.path.isabs(mapping.source) else \
+                    os.path.join(source_path, mapping.source)
+                mpoint_destination = mapping.destination
+                mode = mapping.mode
+                # compile mounpoints
+                volumes += [
+                    "-v", "{:s}:{:s}:{:s}".format(mpoint_source, mpoint_destination, mode)
+                ]
 
         # pulling image (if requested)
         if parsed.pull or parsed.force_pull:
