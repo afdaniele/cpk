@@ -37,9 +37,11 @@ class TCPMachine(Machine):
     type: str = "tcp"
 
     def __init__(self, name: str, host: str, port: Optional[Union[int, str]] = None):
+        configuration = {"host": host}
         if port is not None:
+            configuration["port"] = port
             host = f"{host}:{port}"
-        super(TCPMachine, self).__init__(name, host)
+        super(TCPMachine, self).__init__(name, host, configuration=configuration)
 
     @property
     def is_local(self) -> bool:
