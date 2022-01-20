@@ -358,7 +358,7 @@ class CLIRunCommand(AbstractCLICommand):
         # docker arguments
         if not parsed.docker_args:
             parsed.docker_args = []
-        if (not parsed.keep) or (not parsed.detach):
+        if not parsed.keep:
             parsed.docker_args += ["--rm"]
         if parsed.detach:
             parsed.docker_args += ["-d"]
