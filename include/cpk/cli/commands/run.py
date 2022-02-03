@@ -296,43 +296,45 @@ class CLIRunCommand(AbstractCLICommand):
                 cpklogger.error("The options -s/--sync, -sm/--sync-mirror requires the 'rsync' "
                                 "tool. Please, install it and retry.")
                 return False
-            # ---
-            cpklogger.info(f"Syncing code...")
-            remote_uri = f"{machine.user}@{machine.host}:{RSYNC_DESTINATION_PATH.rstrip('/')}"
-            # rsync options
-            rsync_options = "" if not parsed.sync_mirror else "--delete"
-            # run rsync
-            for proj in projects_to_mount:
-                remote_path = f"{remote_uri}/{proj.name}".rstrip('/') + '/'
-                cmd = f"rsync --archive {rsync_options} {proj.path}/ {remote_path}"
-                _run_cmd(cmd, shell=True)
-            cpklogger.info(f"Code synced!")
 
         # mountpoints
         mountpoints: Dict[str, str] = {}
+        rsync_mountpoints: Dict[str, str] = {}
 
         def _mount(_proj: CPKProject, _mapping: CPKFileMapping):
+            # mountapoint source on the local machine (never depends on rsync)
+            local_source_path = _proj.path
+            local_mountpoint_source = _mapping.source if os.path.isabs(_mapping.source) else \
+                os.path.join(local_source_path, _mapping.source)
+            # mountpoint source to pass to docker (depends on rsync)
             source_path = _proj.path if not sync_remote else \
-                os.path.join(RSYNC_DESTINATION_PATH, _proj.name)
-            mpoint_source = _mapping.source if os.path.isabs(_mapping.source) else \
+                os.path.join(RSYNC_DESTINATION_PATH, os.path.abspath(_proj.path).lstrip("/"))
+            mountpoint_source = _mapping.source if os.path.isabs(_mapping.source) else \
                 os.path.join(source_path, _mapping.source)
-            mpoint_destination = _mapping.destination
+            # mountpoint destination (never depends on rsync)
+            mountpoint_destination = _mapping.destination
+            # mountpoint mode (i.e., ro, rw, etc)
             mode = _mapping.mode
             # resolve paths
-            mpoint_source = str(Path(mpoint_source).resolve())
-            mpoint_destination = str(Path(mpoint_destination).resolve())
+            local_mountpoint_source = str(Path(local_mountpoint_source).resolve())
+            mountpoint_source = str(Path(mountpoint_source).resolve())
+            mountpoint_destination = str(Path(mountpoint_destination).resolve())
             # make sure we have no conflicts of mountpoints
-            conflict = mountpoints.get(mpoint_destination, None)
-            if conflict not in [None, mpoint_source]:
-                cpklogger.error(f"Mountpoint '{mpoint_destination}' inside the container "
+            conflict = mountpoints.get(mountpoint_destination, None)
+            if conflict not in [None, local_mountpoint_source]:
+                cpklogger.error(f"Mountpoint '{mountpoint_destination}' inside the container "
                                 f"wants to be claimed by both '{conflict}' and "
-                                f"'{mpoint_source}'.")
+                                f"'{local_mountpoint_source}'.")
                 return False
             # compile mounpoints and add them to list
             volumes.extend([
-                "-v", "{:s}:{:s}:{:s}".format(mpoint_source, mpoint_destination, mode)
+                "-v", "{:s}:{:s}:{:s}".format(mountpoint_source, mountpoint_destination, mode)
             ])
-            mountpoints[mpoint_destination] = mpoint_source
+            mountpoints[mountpoint_destination] = local_mountpoint_source
+            # only non-absolute paths can be rsynced
+            if not os.path.isabs(_mapping.source):
+                rsync_mountpoints[mountpoint_source] = local_mountpoint_source
+            # ---
             return True
 
         # mount source code (if requested)
@@ -359,6 +361,21 @@ class CLIRunCommand(AbstractCLICommand):
                 success = _mount(proj, mapping)
                 if not success:
                     return False
+
+        # sync
+        if sync_remote:
+            cpklogger.info(f"Syncing mountpoints...")
+            remote_base = f"{machine.user}@{machine.host}"
+            for rsync_destination, rsync_source in rsync_mountpoints.items():
+                # rsync options
+                rsync_options = "" if not parsed.sync_mirror else "--delete"
+                rsync_options += f" --rsync-path=\"mkdir -p {rsync_destination} && rsync\""
+                # run rsync
+                remote_path = f"{remote_base}:{rsync_destination}".rstrip('/') + '/'
+                cpklogger.info(f"Syncing mountpoint [{rsync_source}] -> [{remote_path}]")
+                cmd = f"rsync --archive {rsync_options} {rsync_source}/ {remote_path}"
+                _run_cmd(cmd, shell=True)
+            cpklogger.info(f"Mountpoints synced!")
 
         # pulling image (if requested)
         if parsed.pull or parsed.force_pull:
