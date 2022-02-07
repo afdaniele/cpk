@@ -336,7 +336,9 @@ class CLIBuildCommand(AbstractCLICommand):
         if parsed.push:
             # call command `push`
             from .push import CLIPushCommand
-            CLIPushCommand.execute(machine, copy.deepcopy(parsed))
+            push_args = copy.deepcopy(parsed)
+            push_args.release = False
+            CLIPushCommand.execute(machine, push_args)
 
         # perform remove (if needed)
         if parsed.rm:

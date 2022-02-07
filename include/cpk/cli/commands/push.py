@@ -33,6 +33,12 @@ class CLIPushCommand(AbstractCLICommand):
             type=str,
             help="Custom tag"
         )
+        parser.add_argument(
+            "--release",
+            default=False,
+            action="store_true",
+            help="Push release image as well",
+        )
         return parser
 
     @staticmethod
@@ -58,20 +64,24 @@ class CLIPushCommand(AbstractCLICommand):
             cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
 
         # create defaults
-        image = project.image(parsed.arch)
+        images = [project.image(parsed.arch)]
 
-        # print info about multiarch
-        msg = "Pushing image {} to {}.".format(image, project.registry)
-        cpklogger.info(msg)
+        # release image
+        if parsed.release and project.is_release():
+            images += [project.image_release(parsed.arch)]
 
-        # push image
-        try:
-            push_image(machine, image, progress=True)
-        except APIError as e:
-            cpklogger.error(f"An error occurred while pushing the project image:\n{str(e)}")
-            return False
-        except CPKProjectPushException:
-            cpklogger.error(f"An error occurred while building the project image.")
-            return False
+        for image in images:
+            # print info about multiarch
+            msg = "Pushing image {} to {}.".format(image, project.registry)
+            cpklogger.info(msg)
+            # push image
+            try:
+                push_image(machine, image, progress=True)
+            except APIError as e:
+                cpklogger.error(f"An error occurred while pushing the project image:\n{str(e)}")
+                return False
+            except CPKProjectPushException:
+                cpklogger.error(f"An error occurred while building the project image.")
+                return False
 
         cpklogger.info("Image pushed successfully!")
