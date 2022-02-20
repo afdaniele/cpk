@@ -130,6 +130,9 @@ RUN cpk-install-launchers "${PROJECT_LAUNCHERS_PATH}"
 # copy setup file
 COPY ./setup.sh ${PROJECT_PATH}/
 
+# copy project file
+COPY ./project.cpk ${PROJECT_PATH}/
+
 # set CPK environment
 # - for interactive bash sessions
 RUN echo "source ${CPK_INSTALL_DIR}/environment.sh" >> ~/.bashrc

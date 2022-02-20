@@ -1,0 +1,9 @@
+{
+    "schema": "1.0",
+    "template": null,
+    "name": "cpk",
+    "description": "CPK Decorator Project",
+    "organization": "cpk",
+    "version": "0.0.0",
+    "maintainer": "Andrea F. Daniele <afdaniele@ttic.edu>"
+}
