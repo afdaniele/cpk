@@ -53,6 +53,7 @@ def sanitize_hostname(hostname: str) -> str:
 
 def parse_configurations(config_file: str) -> dict:
     with open(config_file, "rt") as fin:
+        # TODO: use safe_load instead
         configurations_content = yaml.load(fin, Loader=yaml.SafeLoader)
     if "version" not in configurations_content:
         raise ValueError("The configurations file must have a root key 'version'.")

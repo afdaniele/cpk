@@ -369,6 +369,7 @@ class Machine(abc.ABC):
             endpoint_arch = client.info()["Architecture"]
             if endpoint_arch not in CANONICAL_ARCH:
                 raise CPKException(f"Unsupported architecture '{endpoint_arch}'.")
+            self._arch = endpoint_arch
         finally:
             client.close()
         return CANONICAL_ARCH[endpoint_arch]
