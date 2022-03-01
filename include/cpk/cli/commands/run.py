@@ -192,7 +192,7 @@ class CLIRunCommand(AbstractCLICommand):
 
         # create defaults
         image = project.image(parsed.arch)
-        parsed.name = parsed.name or f"cpk-run-{project.name}"
+        parsed.name = parsed.name or f"cpk-run-{project.name.replace('/', '-')}"
 
         # subcommand "attach"
         # TODO: this will not work with Machine created from env, the host will be None
