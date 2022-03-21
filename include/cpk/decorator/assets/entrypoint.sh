@@ -13,8 +13,8 @@ cpk-debug "==> Entrypoint"
 
 cpk-configure-python() {
     # make user libraries discoverable
-    PYTHONPATH=/usr/local/lib/python3/dist-packages:${PYTHONPATH}
-    PYTHONPATH=/usr/local/lib/python3.8/dist-packages:${PYTHONPATH}
+    PYTHON_VERSION=$(python3 -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')
+    PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/dist-packages:${PYTHONPATH}
 
     # make user code discoverable by python
     for candidate_project in $(find "${CPK_SOURCE_DIR}/" -name project.cpk -type f -printf "%T@ %p\n" | sort -n -r | awk '{print $2}'); do
