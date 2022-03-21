@@ -209,7 +209,7 @@ class CPKFileMappingTrigger(Enum):
 class CPKFileMapping:
     source: str
     destination: str
-    triggers: List[CPKFileMappingTrigger]
+    triggers: List[str]
     required: bool
     mode: str = "rw"
 
@@ -230,7 +230,7 @@ class CPKFileMapping:
         return CPKFileMapping(
             source=data['source'],
             destination=data['destination'],
-            triggers=list(map(CPKFileMappingTrigger, data.get('triggers', ["default"]))),
+            triggers=data.get('triggers', ["default"]),
             required=data.get('required', False),
             mode=data.get('mode', "rw")
         )

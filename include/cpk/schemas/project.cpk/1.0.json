@@ -52,11 +52,18 @@
                     },
                     "triggers": {
                         "type": "array",
-                        "items": {
+                        "items":  {
                             "type": "string",
-                            "enum": [
-                                "default",
-                                "run:mount"
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "default",
+                                        "run:mount"
+                                    ]
+                                },
+                                {
+                                    "pattern": "^launcher:[a-zA-Z0-9_\\-.]+$"
+                                }
                             ]
                         }
                     },

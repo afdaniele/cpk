@@ -23,7 +23,6 @@ from ...utils.cli import check_git_status
 SUPPORTED_SUBCOMMANDS = [
     "attach"
 ]
-TRIGGERS = {CPKFileMappingTrigger.DEFAULT, CPKFileMappingTrigger.RUN_MOUNT}
 RSYNC_DESTINATION_PATH = "/tmp/"
 
 
@@ -219,6 +218,17 @@ class CLIRunCommand(AbstractCLICommand):
         volumes = []
         # module configuration
         module_configuration_args = []
+        # active triggers
+        triggers = {CPKFileMappingTrigger.DEFAULT.value}
+
+        # trigger run:mount
+        if mount_source:
+            triggers.update({CPKFileMappingTrigger.RUN_MOUNT.value})
+
+        # trigger launcher:<X>
+        if parsed.launcher:
+            triggers.update({f"launcher:{parsed.launcher}"})
+        cpklogger.debug(f"Active triggers: {triggers}")
 
         # print info about multiarch
         cpklogger.info("Running an image for {} on {}.".format(parsed.arch, machine_arch))
@@ -337,25 +347,11 @@ class CLIRunCommand(AbstractCLICommand):
             # ---
             return True
 
-        # mount source code (if requested)
-        if mount_source:
-            for proj in projects_to_mount:
-                # iterate over list of mappings
-                for mapping in proj.mappings:
-                    if CPKFileMappingTrigger.RUN_MOUNT not in mapping.triggers:
-                        continue
-                    # ---
-                    success = _mount(proj, mapping)
-                    if not success:
-                        return False
-
-        # default mappings
+        # mappings
         for proj in projects_to_mount:
             # iterate over list of mappings
             for mapping in proj.mappings:
-                if CPKFileMappingTrigger.DEFAULT not in mapping.triggers:
-                    continue
-                if mount_source and CPKFileMappingTrigger.RUN_MOUNT in mapping.triggers:
+                if len(triggers.intersection(mapping.triggers)) <= 0:
                     continue
                 # ---
                 success = _mount(proj, mapping)
