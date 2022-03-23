@@ -14,6 +14,7 @@ from cpk.cli.commands.build import CLIBuildCommand
 from cpk.cli.commands.run import CLIRunCommand
 from cpk.cli.commands.clean import CLICleanCommand
 from cpk.cli.commands.push import CLIPushCommand
+from cpk.cli.commands.pull import CLIPullCommand
 from cpk.cli.commands.decorate import CLIDecorateCommand
 from cpk.cli.commands.machine import CLIMachineCommand
 from cpk.cli.commands.endpoint import CLIEndpointCommand
@@ -26,6 +27,7 @@ _supported_commands = {
     'run': CLIRunCommand,
     'clean': CLICleanCommand,
     'push': CLIPushCommand,
+    'pull': CLIPullCommand,
     'decorate': CLIDecorateCommand,
     'machine': CLIMachineCommand,
     'endpoint': CLIEndpointCommand,

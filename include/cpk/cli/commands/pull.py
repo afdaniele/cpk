@@ -7,26 +7,18 @@ from .endpoint import CLIEndpointInfoCommand
 from .info import CLIInfoCommand
 from .. import AbstractCLICommand, cpklogger
 from ... import CPKProject
-from ...exceptions import CPKProjectPushException
+from ...exceptions import CPKProjectPullException
 from ...types import Machine, Arguments
-from ...utils.cli import check_git_status
-from ...utils.docker import push_image
 
 
-class CLIPushCommand(AbstractCLICommand):
+class CLIPullCommand(AbstractCLICommand):
 
-    KEY = 'push'
+    KEY = 'pull'
 
     @staticmethod
     def parser(parent: Optional[argparse.ArgumentParser] = None,
                args: Optional[Arguments] = None) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(parents=[parent])
-        parser.add_argument(
-            "--rm",
-            default=False,
-            action="store_true",
-            help="Remove the images once the build is finished",
-        )
         parser.add_argument(
             "--tag",
             default=None,
@@ -37,7 +29,7 @@ class CLIPushCommand(AbstractCLICommand):
             "--release",
             default=False,
             action="store_true",
-            help="Push release image as well",
+            help="Pull release image as well",
         )
         return parser
 
@@ -48,11 +40,6 @@ class CLIPushCommand(AbstractCLICommand):
 
         # show info about project
         CLIInfoCommand.execute(machine, parsed)
-
-        # check git workspace status
-        proceed = check_git_status(project, parsed)
-        if not proceed:
-            return False
 
         # get info about docker endpoint
         CLIEndpointInfoCommand.execute(machine, parsed)
@@ -72,16 +59,16 @@ class CLIPushCommand(AbstractCLICommand):
 
         for image in images:
             # print info about registry
-            msg = "Pushing image {} to {}.".format(image, project.registry)
+            msg = "Pulling image {} to {}.".format(image, project.registry)
             cpklogger.info(msg)
-            # push image
+            # pull image
             try:
-                push_image(machine, image, progress=True)
+                machine.pull_image(image, progress=True)
             except APIError as e:
-                cpklogger.error(f"An error occurred while pushing the project image:\n{str(e)}")
+                cpklogger.error(f"An error occurred while pulling the project image:\n{str(e)}")
                 return False
-            except CPKProjectPushException:
-                cpklogger.error(f"An error occurred while building the project image.")
+            except CPKProjectPullException:
+                cpklogger.error(f"An error occurred while pulling the project image.")
                 return False
 
-        cpklogger.info("Image pushed successfully!")
+        cpklogger.info("Image pulled successfully!")

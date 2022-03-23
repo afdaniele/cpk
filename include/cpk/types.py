@@ -387,12 +387,12 @@ class Machine(abc.ABC):
         if username is not None and password is not None:
             self.get_client().login(username=username, password=password)
 
-    def pull_image(self, image, progress=True) -> bool:
+    def pull_image(self, image, progress=True):
         client = self.get_client()
         layers = set()
         pulled = set()
         pbar = ProgressBar() if progress else None
-        for line in client.api.pull(image, stream=True, decode=True):
+        for line in client.api.pull(*image.split(":"), stream=True, decode=True):
             if "id" not in line or "status" not in line:
                 continue
             layer_id = line["id"]
@@ -405,7 +405,6 @@ class Machine(abc.ABC):
                 pbar.update(percentage)
         if progress:
             pbar.done()
-        return True
 
     def push_image(self, image, progress=True, **kwargs):
         client = self.get_client()
