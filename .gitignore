@@ -4,3 +4,4 @@ MANIFEST
 docs/build/
 /build/
 /cpk.egg-info/
+.idea
