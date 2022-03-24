@@ -65,11 +65,15 @@ def run():
     # execute command
     try:
         with machine:
-            command.execute(machine, parsed)
+            res = command.execute(machine, parsed)
+        if res is False:
+            exit(1)
     except CPKException as e:
         cpklogger.error(str(e))
+        exit(2)
     except KeyboardInterrupt:
         cpklogger.info(f"Operation aborted by the user")
+        exit(3)
 
 
 if __name__ == '__main__':
