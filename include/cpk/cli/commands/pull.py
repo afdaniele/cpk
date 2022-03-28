@@ -59,7 +59,7 @@ class CLIPullCommand(AbstractCLICommand):
 
         for image in images:
             # print info about registry
-            msg = "Pulling image {} to {}.".format(image, project.registry)
+            msg = "Pulling image {} from {}.".format(image, project.registry)
             cpklogger.info(msg)
             # pull image
             try:
