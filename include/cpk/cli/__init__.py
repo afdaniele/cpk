@@ -1,4 +1,5 @@
 import argparse
+import dataclasses
 import logging
 import os
 from abc import abstractmethod, ABC
@@ -7,6 +8,16 @@ from typing import Optional, Type
 from cpk.cli.logger import cpklogger
 from cpk.constants import CANONICAL_ARCH
 from cpk.types import Machine, Arguments
+
+
+@dataclasses.dataclass
+class CLIArguments:
+    all: Arguments = dataclasses.field(default_factory=list)
+    positional1: Arguments = dataclasses.field(default_factory=list)
+    positional2: Arguments = dataclasses.field(default_factory=list)
+
+
+arguments = CLIArguments()
 
 
 class AbstractCLICommand(ABC):

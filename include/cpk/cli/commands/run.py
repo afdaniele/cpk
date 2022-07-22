@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional, Dict
 
+import cpk.cli
 from cpk.machine import SSHMachine
 from docker.errors import ImageNotFound
 
@@ -92,14 +93,6 @@ class CLIRunCommand(AbstractCLICommand):
             "--launcher",
             default=None,
             help="Launcher to invoke inside the container",
-        )
-        parser.add_argument(
-            "-A",
-            "--argument",
-            dest="arguments",
-            default=[],
-            action="append",
-            help="Arguments for the container command",
         )
         parser.add_argument(
             "--runtime",
@@ -396,10 +389,8 @@ class CLIRunCommand(AbstractCLICommand):
             environment.extend(["-e", f"CPK_LAUNCHER={parsed.launcher}"])
 
         cmd_option = [] if not parsed.cmd else [parsed.cmd]
-        cmd_arguments = [] if not parsed.arguments else ["--"]
-
-        for argval in parsed.arguments:
-            cmd_arguments += f"--{argval}".split("=")
+        cmd_arguments = ["--"] + cpk.cli.arguments.positional2 \
+            if cpk.cli.arguments.positional2 else []
 
         # endpoint arguments
         docker_epoint_args = []

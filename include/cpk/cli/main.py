@@ -1,23 +1,23 @@
 import argparse
+import copy
 import logging
 import os
 import sys
 
 import cpk
 from cpk import cpkconfig
-from cpk.cli.commands.create import CLICreateCommand
-from cpk.exceptions import CPKException
-
-from cpk.cli.logger import cpklogger, update_logger
-from cpk.cli.commands.info import CLIInfoCommand
 from cpk.cli.commands.build import CLIBuildCommand
-from cpk.cli.commands.run import CLIRunCommand
 from cpk.cli.commands.clean import CLICleanCommand
-from cpk.cli.commands.push import CLIPushCommand
-from cpk.cli.commands.pull import CLIPullCommand
+from cpk.cli.commands.create import CLICreateCommand
 from cpk.cli.commands.decorate import CLIDecorateCommand
-from cpk.cli.commands.machine import CLIMachineCommand
 from cpk.cli.commands.endpoint import CLIEndpointCommand
+from cpk.cli.commands.info import CLIInfoCommand
+from cpk.cli.commands.machine import CLIMachineCommand
+from cpk.cli.commands.pull import CLIPullCommand
+from cpk.cli.commands.push import CLIPushCommand
+from cpk.cli.commands.run import CLIRunCommand
+from cpk.cli.logger import cpklogger, update_logger
+from cpk.exceptions import CPKException
 from cpk.utils.machine import get_machine
 
 _supported_commands = {
@@ -45,6 +45,21 @@ def run():
     if len(sys.argv) > 1 and sys.argv[1] in ['-h', '--help']:
         parser.print_help()
         return
+    # find positional arguments: positional1 is after `--`, positional2 is after `++`
+    try:
+        pp = sys.argv.index("++")
+    except ValueError:
+        pp = len(sys.argv)
+    try:
+        mm = sys.argv.index("--")
+    except ValueError:
+        mm = len(sys.argv)
+    # store arguments
+    cpk.cli.arguments.all = copy.copy(sys.argv)
+    cpk.cli.arguments.positional1 = sys.argv[mm + 1: len(sys.argv) if pp < mm else pp]
+    cpk.cli.arguments.positional2 = sys.argv[pp + 1: len(sys.argv) if mm < pp else mm]
+    # remove positional arguments from argv
+    sys.argv = sys.argv[0:min(mm, pp)] + ["--"] + cpk.cli.arguments.positional1
     # ---
     # parse `command`
     parsed, remaining = parser.parse_known_args()
