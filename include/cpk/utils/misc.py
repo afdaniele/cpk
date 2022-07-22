@@ -63,6 +63,7 @@ def parse_configurations(config_file: str) -> dict:
 
 
 def configure_binfmt(machine_arch: str, arch: str, epoint: docker.DockerClient, logger):
+    machine_arch = CANONICAL_ARCH[machine_arch]
     compatible_archs = BUILD_COMPATIBILITY_MAP[machine_arch]
     if arch not in compatible_archs:
         logger.info("Configuring machine for multiarch...")
