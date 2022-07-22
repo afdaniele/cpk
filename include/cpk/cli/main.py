@@ -59,7 +59,7 @@ def run():
     cpk.cli.arguments.positional1 = sys.argv[mm + 1: len(sys.argv) if pp < mm else pp]
     cpk.cli.arguments.positional2 = sys.argv[pp + 1: len(sys.argv) if mm < pp else mm]
     # remove positional arguments from argv
-    sys.argv = sys.argv[0:min(mm, pp)] + ["--"] + cpk.cli.arguments.positional1
+    sys.argv = sys.argv[0:min(mm, pp)]
     # ---
     # parse `command`
     parsed, remaining = parser.parse_known_args()

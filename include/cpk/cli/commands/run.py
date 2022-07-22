@@ -1,4 +1,5 @@
 import argparse
+import copy
 import os
 import shutil
 import subprocess
@@ -140,11 +141,6 @@ class CLIRunCommand(AbstractCLICommand):
             default=None,
             type=str,
             help="Custom tag"
-        )
-        parser.add_argument(
-            "docker_args",
-            nargs="*",
-            default=[]
         )
         # parser.add_argument(
         #     "subcommand",
@@ -399,17 +395,16 @@ class CLIRunCommand(AbstractCLICommand):
             docker_epoint_args += ["-H", machine.base_url]
 
         # docker arguments
-        if not parsed.docker_args:
-            parsed.docker_args = []
+        docker_args = copy.copy(cpk.cli.arguments.positional1)
         if not parsed.keep:
-            parsed.docker_args += ["--rm"]
+            docker_args += ["--rm"]
         if parsed.detach:
-            parsed.docker_args += ["-d"]
+            docker_args += ["-d"]
 
         # add container name to docker args
-        parsed.docker_args += ["--name", parsed.name]
+        docker_args += ["--name", parsed.name]
         # escape spaces in arguments
-        parsed.docker_args = [a.replace(" ", "\\ ") for a in parsed.docker_args]
+        docker_args = [a.replace(" ", "\\ ") for a in docker_args]
 
         # run
         exitcode = _run_cmd(
@@ -418,7 +413,7 @@ class CLIRunCommand(AbstractCLICommand):
             + ["run", "-it"]
             + module_configuration_args
             + environment
-            + parsed.docker_args
+            + docker_args
             + volumes
             + [image]
             + cmd_option
