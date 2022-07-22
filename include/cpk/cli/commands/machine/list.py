@@ -30,6 +30,6 @@ class CLIMachineListCommand(AbstractCLICommand):
         print(table_fmt.format('ID', 'NAME', 'TYPE', 'ENDPOINT'))
         for i, (name, machine) in enumerate(machines.items()):
             print(table_fmt.format(i+1, name, machine.type, machine.base_url))
-            print()
+        print()
         # ---
         return True
