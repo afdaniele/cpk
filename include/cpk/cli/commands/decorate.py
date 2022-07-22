@@ -122,10 +122,12 @@ class CLIDecorateCommand(AbstractCLICommand):
         if not parsed.no_multiarch:
             configure_binfmt(machine_arch, parsed.arch, docker, cpklogger)
 
+        # get machine
+        docker_opts = ["-H", machine.base_url] if machine.base_url else []
+
         # compile command
-        cmd = [
-            "docker", "build",
-            # TODO: machine is not used here
+        cmd = ["docker"] + docker_opts + [
+            "build",
             "-t", output_image.compile(),
             "-f", dockerfile,
             "--build-arg", f"ARCH={parsed.arch}",
