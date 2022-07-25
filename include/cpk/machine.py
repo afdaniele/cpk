@@ -163,6 +163,8 @@ class SSHMachine(Machine):
         if logger:
             logger.debug(f"Writing SSH host configuration to '{ssh_conf_fpath}'")
         config.write(ssh_conf_fpath)
+        # change permissions of host.conf to 600
+        os.chmod(ssh_conf_fpath, 0o600)
         # configure user's environment for cpk
         configure_ssh_for_cpk(logger)
         # try to transfer the keys to the machine
