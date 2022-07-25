@@ -1,0 +1,3 @@
+# LIST YOUR PYTHON3 PACKAGES HERE
+
+https://download.pytorch.org/whl/cu113/torch-1.12.0%2Bcu113-cp38-cp38-linux_x86_64.whl
