@@ -1,8 +1,8 @@
 # `cpk` - Code Packaging toolKit 
 
-**cpk** is a toolkit that standardize the way code in a 
+**cpk** is a toolkit that standardizes the way code in a 
 project is structured and packaged for maximum portability, 
-readability and maintainability.
+readability, and maintainability.
 
 
 ## Get started
