@@ -1,4 +1,4 @@
-__version__ = '0.5.2'
+__version__ = '1.0.0'
 
 from .config import cpkconfig
 from .project import CPKProject
