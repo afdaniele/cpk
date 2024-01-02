@@ -11,7 +11,7 @@ from cpk.cli import cpklogger
 from cpk.schemas import get_machine_schema
 from cpk.utils.misc import sanitize_hostname
 
-from cpk.machine import Machine, FromEnvMachine, TCPMachine, SSHMachine, UnixSocketMachine
+from cpk.machine import CPKMachine, FromEnvMachine, TCPMachine, SSHMachine, UnixSocketMachine
 
 _supported_machines = {
     "ssh": SSHMachine,
@@ -20,7 +20,7 @@ _supported_machines = {
 }
 
 
-def load_machines(path: str) -> Dict[str, Machine]:
+def load_machines(path: str) -> Dict[str, CPKMachine]:
     machines = {}
     # iterate over the machines on disk
     for machine_cfg_fpath in glob.glob(os.path.join(path, '*/config.json')):
@@ -65,7 +65,7 @@ def load_machines(path: str) -> Dict[str, Machine]:
     return machines
 
 
-def get_machine(parsed: argparse.Namespace, machines: Dict[str, Machine]) -> Machine:
+def get_machine(parsed: argparse.Namespace, machines: Dict[str, CPKMachine]) -> CPKMachine:
     if parsed.machine is None:
         cpklogger.debug("Argument 'parsed.machine' not set. Creating machine from environment.")
         return FromEnvMachine()

@@ -1,0 +1,61 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "cpk-project-layer-structure-1-0",
+    "title": "",
+    "type": "object",
+    "properties": {
+        "schema": {
+            "type": "string",
+            "const": "1.0"
+        },
+        "structure": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "kind": {
+                        "type": "string",
+                        "description": "Type of item, 'file' or 'directory'",
+                        "enum": [
+                            "file",
+                            "directory"
+                        ]
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "A few words about what this file/directory is for"
+                    },
+                    "required": {
+                        "type": "boolean",
+                        "description": "Whether this file/directory must be present at all times",
+                        "default": false
+                    }
+                },
+                "if": {
+                    "properties": {
+                        "kind": {
+                            "const": "file"
+                        }
+                    }
+                },
+                "then": {
+                    "properties": {},
+                    "required": [
+                        "kind"
+                    ]
+                },
+                "else": {
+                    "properties": {},
+                    "required": [
+                        "kind"
+                    ]
+                }
+            }
+        }
+    },
+    "required": [
+        "schema",
+        "structure"
+    ],
+    "additionalProperties": false
+}

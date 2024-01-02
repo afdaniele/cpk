@@ -33,6 +33,11 @@ BUILD_COMPATIBILITY_MAP = {
 
 CONTAINER_LABEL_DOMAIN = "cpk.label"
 
+DEFAULT_DOCKER_REGISTRY = "docker.io"
+DEFAULT_DOCKER_REGISTRY_PORT = 5000
+DEFAULT_DOCKER_ORGANIZATION = "library"
+DEFAULT_DOCKER_TAG = "latest"
+
 CPK_CONFIG_DIR = os.path.abspath(os.path.join(str(Path.home()), ".cpk"))
 
 DOCKERHUB_API_URL = {

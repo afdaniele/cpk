@@ -1,6 +1,5 @@
 from typing import Optional
 
-from .generic import ProjectVersion
 from .null import NullAdapter
 from ..utils.git import get_repo_info
 
@@ -20,18 +19,6 @@ class GitRepositoryAdapter(NullAdapter):
     @property
     def organization(self) -> str:
         return self._repo.origin.organization
-
-    @property
-    def version(self) -> ProjectVersion:
-        if not self.enabled:
-            return super(GitRepositoryAdapter, self).version
-        # ---
-        return ProjectVersion(
-            tag=self._repo.branch,
-            head=self._repo.version.head,
-            closest=self._repo.version.closest,
-            sha=self._repo.sha
-        )
 
     @property
     def maintainer(self) -> Optional[str]:

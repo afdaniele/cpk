@@ -1,0 +1,9 @@
+{
+    "schema": "1.0",
+    "template": null,
+    "name": "basic",
+    "description": "A basic project",
+    "organization": "cpk-examples",
+    "version": "0.0.0",
+    "maintainer": "Andrea F. Daniele"
+}

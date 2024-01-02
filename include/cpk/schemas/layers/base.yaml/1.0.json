@@ -1,0 +1,38 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "cpk-project-layer-base-1-0",
+    "title": "",
+    "type": "object",
+    "properties": {
+        "schema": {
+            "type": "string",
+            "const": "1.0"
+        },
+        "registry": {
+            "type": "string",
+            "format": "hostname",
+            "default": "docker.io"
+        },
+        "organization": {
+            "type": "string",
+            "minLength": 1,
+            "default": "cpkbase"
+        },
+        "repository": {
+            "type": "string",
+            "minLength": 1
+        },
+        "tag": {
+            "type": "string",
+            "minLength": 1
+        }
+    },
+    "required": [
+        "schema",
+        "registry",
+        "organization",
+        "repository",
+        "tag"
+    ],
+    "additionalProperties": false
+}

@@ -1,44 +1,263 @@
-import abc
 import copy
 import dataclasses
 import json
 import logging
 import os
+import re
+from abc import abstractmethod, ABC
 from enum import Enum
 from shutil import rmtree
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union, Type, Iterator, Any
 
 import jsonschema
+from cpk.utils.misc import assert_canonical_arch
 from docker import DockerClient
 
+import cpk
+
 from cpk.utils.progress_bar import ProgressBar
-from .constants import CANONICAL_ARCH
+from .constants import CANONICAL_ARCH, DEFAULT_DOCKER_REGISTRY, DEFAULT_DOCKER_TAG, \
+    DEFAULT_DOCKER_ORGANIZATION, DEFAULT_DOCKER_REGISTRY_PORT
 from .exceptions import \
     NotACPKProjectException, \
     InvalidCPKTemplateFile, InvalidCPKTemplate, \
     CPKTemplateSchemaNotSupported, CPKException
-from .schemas import get_template_schema
+from .utils.semver import SemanticVersion
+
+from dockertown import Image
 
 Arguments = List[str]
+CPKProjectGenericLayer = dict
+NOTSET = object
 
 
 @dataclasses.dataclass
-class CPKProjectInfo:
+class Maintainer:
     name: str
-    organization: Optional[str]
-    description: Optional[str]
-    maintainer: Optional[str]
-    template: 'CPKTemplateInfo'
-    version: Optional[str]
-    registry: Optional[str]
-    tag: Optional[str]
-    mappings: List['CPKFileMapping'] = dataclasses.field(default_factory=list)
+    email: str
+
+    @classmethod
+    def parse(cls, data: dict) -> 'Maintainer':
+        return Maintainer(name=data["name"], email=data["email"])
+
+    def as_dict(self) -> dict:
+        return dataclasses.asdict(self)
+
+
+@dataclasses.dataclass
+class CPKProjectLayer:
+
+    @classmethod
+    @abstractmethod
+    def parse(cls, data: dict) -> 'CPKProjectLayer':
+        pass
+
+    def as_dict(self) -> dict:
+        unpack = lambda v: v.as_dict() if isinstance(v, CPKProjectLayer) else v
+        return {
+            field.name: unpack(getattr(self, field.name)) for field in dataclasses.fields(self)
+        }
+
+
+@dataclasses.dataclass
+class CPKProjectSelfLayer(CPKProjectLayer):
+    name: str
+    description: str
+    organization: str
+    maintainer: Maintainer
+    version: SemanticVersion
+    distribution: Optional[str] = None
+    url: Optional[str] = None
+
+    @classmethod
+    def parse(cls, data: dict) -> 'CPKProjectSelfLayer':
+        return CPKProjectSelfLayer(
+            name=data["name"],
+            description=data["description"],
+            organization=data["organization"],
+            maintainer=Maintainer.parse(data["maintainer"]),
+            version=SemanticVersion.parse(data["version"]),
+            distribution=data.get("distribution", None),
+            url=data.get("url", None),
+        )
+
+
+@dataclasses.dataclass
+class CPKProjectFormatLayer(CPKProjectLayer):
+    version: SemanticVersion
+
+    @classmethod
+    def parse(cls, data: dict) -> 'CPKProjectFormatLayer':
+        return CPKProjectFormatLayer(
+            version=SemanticVersion.parse(data["version"]),
+        )
+
+
+@dataclasses.dataclass
+class CPKProjectTemplateLayer(CPKProjectLayer):
+    provider: str
+    organization: str
+    name: str
+    version: str
+    url: Optional[str] = None
+
+    @classmethod
+    def parse(cls, data: dict) -> 'CPKProjectTemplateLayer':
+        return CPKProjectTemplateLayer(
+            provider=data["provider"],
+            organization=data["organization"],
+            name=data["name"],
+            version=data["version"],
+            url=data.get("url", None),
+        )
+
+
+@dataclasses.dataclass
+class CPKProjectStructureLayer(CPKProjectLayer):
+    _structure: List['CPKProjectStructureLayer.Item']
+
+    class Kind(Enum):
+        FILE = "file"
+        DIRECTORY = "directory"
+
+    @dataclasses.dataclass
+    class Item:
+        kind: 'CPKProjectStructureLayer.Kind'
+        required: bool = False
+        description: Optional[str] = None
+
+        @classmethod
+        def parse(cls, data: dict) -> 'CPKProjectStructureLayer.Item':
+            attrs = copy.copy(data)
+            kind: CPKProjectStructureLayer.Kind = CPKProjectStructureLayer.Kind(attrs.pop("kind"))
+            return CPKProjectStructureLayer.Item(
+                kind=kind,
+                **attrs
+            )
+
+        def as_dict(self) -> dict:
+            return dataclasses.asdict(self)
+
+    @property
+    def items(self) -> Iterator[Item]:
+        return iter(self._structure)
+
+    @property
+    def files(self) -> Iterator[Item]:
+        return iter(filter(lambda item: item.kind is CPKProjectStructureLayer.Kind.FILE, self.items))
+
+    @property
+    def directories(self) -> Iterator[Item]:
+        return iter(filter(lambda item: item.kind is CPKProjectStructureLayer.Kind.DIRECTORY, self.items))
+
+    @classmethod
+    def parse(cls, data: dict) -> 'CPKProjectStructureLayer':
+        struct: List[CPKProjectStructureLayer.Item] = []
+        for item in data["structure"]:
+            struct.append(CPKProjectStructureLayer.Item.parse(item))
+        return CPKProjectStructureLayer(
+            _structure=struct
+        )
+
+    def as_dict(self) -> dict:
+        return {
+            "schema": "1.0",
+            "structure": [
+                item.as_dict() for item in self.items
+            ]
+        }
+
+
+@dataclasses.dataclass
+class CPKProjectBaseLayer(CPKProjectLayer):
+    registry: str
+    organization: str
+    repository: str
+    tag: str
+
+    @classmethod
+    def parse(cls, data: dict) -> 'CPKProjectBaseLayer':
+        return CPKProjectBaseLayer(
+            registry=data["registry"],
+            organization=data["organization"],
+            repository=data["repository"],
+            tag=data["tag"],
+        )
+
+
+@dataclasses.dataclass
+class CPKProjectLayersContainer:
+    _others: Dict[str, dict]
+    _self: CPKProjectSelfLayer
+    _format: CPKProjectFormatLayer
+    _template: CPKProjectTemplateLayer
+    _base: CPKProjectBaseLayer
+    _structure: Optional[CPKProjectStructureLayer] = None
+
+    @property
+    def self(self) -> CPKProjectSelfLayer:
+        return self._self
+
+    @property
+    def format(self) -> CPKProjectFormatLayer:
+        return self._format
+
+    @property
+    def template(self) -> CPKProjectTemplateLayer:
+        return self._template
+
+    @property
+    def base(self) -> CPKProjectBaseLayer:
+        return self._base
+
+    @property
+    def structure(self) -> Optional[CPKProjectStructureLayer]:
+        return self._structure
+
+    def get(self, layer: str, default: Any = NOTSET) -> Union[CPKProjectLayer, dict]:
+        try:
+            return self.__getitem__(layer)
+        except KeyError as e:
+            if default is NOTSET:
+                raise e
+            return default
+
+    @classmethod
+    def parse(cls, layers: dict) -> 'CPKProjectLayersContainer':
+        known_layers: Dict[str, Type[CPKProjectLayer]] = {
+            "self": CPKProjectSelfLayer,
+            "format": CPKProjectFormatLayer,
+            "template": CPKProjectTemplateLayer,
+            "structure": CPKProjectStructureLayer,
+            "base": CPKProjectBaseLayer,
+        }
+        parsed_layers: Dict[str, Union[CPKProjectLayer, dict]] = {}
+        other_layers: Dict[str, dict] = {}
+        for layer_name, layer in layers.items():
+            if layer_name in known_layers:
+                parsed_layers[f"_{layer_name}"] = known_layers[layer_name].parse(layer)
+            else:
+                other_layers[layer_name] = layer
+        # ---
+        return CPKProjectLayersContainer(
+            _others=other_layers,
+            **parsed_layers
+        )
+
+    def __getitem__(self, item):
+        if hasattr(self, item):
+            return getattr(self, item)
+        else:
+            if item not in self._others:
+                raise KeyError(f"Layer with name '{item}' not found.")
+            return self._others[item]
 
 
 @dataclasses.dataclass
 class GitRepositoryVersion:
     head: Optional[str]
     closest: Optional[str]
+    sha: Optional[str]
 
 
 @dataclasses.dataclass
@@ -76,7 +295,8 @@ class GitRepository:
             detached=False,
             version=GitRepositoryVersion(
                 head=None,
-                closest=None
+                closest=None,
+                sha=None
             ),
             origin=GitRepositoryOrigin(
                 url=None,
@@ -92,19 +312,19 @@ class GitRepository:
 
 
 @dataclasses.dataclass
-class DockerImageRegistry:
-    hostname: str = "docker.io"
-    port: int = 5000
+class DockerRegistry:
+    hostname: str = DEFAULT_DOCKER_REGISTRY
+    port: int = DEFAULT_DOCKER_REGISTRY_PORT
 
     def is_default(self) -> bool:
-        defaults = DockerImageRegistry()
+        defaults = DockerRegistry()
         # add - registry
         if self.hostname != defaults.hostname or self.port != defaults.port:
             return False
         return True
 
     def compile(self, allow_defaults: bool = False) -> Optional[str]:
-        defaults = DockerImageRegistry()
+        defaults = DockerRegistry()
         name = None if not allow_defaults else f"{defaults.hostname}"
         # add - registry
         if self.hostname != defaults.hostname:
@@ -124,14 +344,15 @@ class DockerImageName:
     """
     The official Docker image naming convention is:
 
-        [REGISTRY[:PORT] /] USER / REPO [:TAG]
+        [REGISTRY[:PORT] /] ORGANIZATION / REPO [:TAG]
 
     """
     repository: str
-    user: str = "library"
-    registry: DockerImageRegistry = dataclasses.field(default_factory=DockerImageRegistry)
-    tag: str = "latest"
+    organization: str = DEFAULT_DOCKER_ORGANIZATION
+    tag: str = DEFAULT_DOCKER_TAG
     arch: Optional[str] = None
+    registry: DockerRegistry = dataclasses.field(default_factory=DockerRegistry)
+    extras: List[str] = dataclasses.field(default_factory=list)
 
     def compile(self, allow_defaults: bool = False) -> str:
         name = ""
@@ -140,24 +361,27 @@ class DockerImageName:
         registry = self.registry.compile(allow_defaults=allow_defaults)
         if registry:
             name += f"{registry}/"
-        # add - user
-        if self.user != defaults.user:
-            name += f"{self.user}/"
+        # add - organization
+        if self.organization != defaults.organization:
+            name += f"{self.organization}/"
         # add - repository
         name += self.repository
         # add - tag
-        if self.tag != defaults.tag or self.arch:
+        if self.tag != defaults.tag or self.arch or self.extras:
             name += f":{self.tag}"
+            for extra in self.extras:
+                name += f"-{extra}"
         # add - arch
         if self.arch:
             name += f"-{self.arch}"
         # ---
-        return name
+        return name.lower()
 
     @staticmethod
-    def from_image_name(name: str) -> 'DockerImageName':
+    def parse(name: str) -> 'DockerImageName':
         input_parts = name.split('/')
         image = DockerImageName(
+            # TODO: X ?
             repository="X"
         )
         # ---
@@ -193,11 +417,62 @@ class DockerImageName:
     def __str__(self) -> str:
         return f"""\
 Registry:\t{str(self.registry)}
-User:\t\t{self.user}
+Organization:\t\t{self.organization}
 Repository:\t{self.repository}
 Tag:\t\t{self.tag}
 Arch:\t\t{self.arch}
         """
+
+
+@dataclasses.dataclass
+class DockerImage:
+    __project: 'cpk.CPKProject'
+
+    def fetch(self) -> Image:
+        # TODO: implement this
+        raise NotImplementedError()
+
+    @staticmethod
+    def _safe_string(s: str) -> str:
+        return re.sub(r"[^\w\-]", "-", s)
+
+    def name(self, arch: str, registry: str = DEFAULT_DOCKER_REGISTRY, extras: List[str] = None) \
+            -> DockerImageName:
+        assert_canonical_arch(arch)
+        extras = extras or []
+        return DockerImageName(
+            registry=DockerRegistry(hostname=registry),
+            repository=self._safe_string(self.__project.name),
+            organization=self._safe_string(self.__project.organization),
+            tag=self._safe_string(self.__project.layers.self.distribution or DEFAULT_DOCKER_TAG),
+            arch=arch,
+            extras=extras,
+        )
+
+    # def release_name(self, arch: str, docs: bool = False, avoid_defaults: bool = False) -> str:
+    #     if not self.is_release():
+    #         raise ValueError("The project repository is not in a release state")
+    #     assert_canonical_arch(arch)
+    #     docs = "-docs" if docs else ""
+    #     version = re.sub(r"[^\w\-.]", "-", self.version.head)
+    #     image = f"{self.organization}/{self.name}:{version}{docs}-{arch}"
+    #     registry = self.registry
+    #     if not avoid_defaults or registry != DEFAULT_REGISTRY:
+    #         image = f"{self.registry}/{image}"
+    #     return image.lower()
+
+
+@dataclasses.dataclass
+class CPKProjectDocker:
+    _project: 'cpk.CPKProject'
+
+    @property
+    def registry(self) -> DockerRegistry:
+        return DockerRegistry()
+
+    @property
+    def image(self) -> DockerImage:
+        return DockerImage(__project=self._project)
 
 
 class CPKFileMappingTrigger(Enum):
@@ -292,7 +567,8 @@ class CPKTemplateInfo:
         return CPKTemplateInfo.from_template_dict(data)
 
 
-class Machine(abc.ABC):
+# TODO: rename to CPKMachine
+class CPKMachine(ABC):
     type: str
 
     def __init__(self, name: str, base_url: Optional[str] = None,
@@ -308,7 +584,7 @@ class Machine(abc.ABC):
         return self._name
 
     @property
-    @abc.abstractmethod
+    @abstractmethod
     def is_local(self) -> bool:
         pass
 
@@ -321,7 +597,7 @@ class Machine(abc.ABC):
     def base_url(self) -> Optional[str]:
         return self._base_url
 
-    @abc.abstractmethod
+    @abstractmethod
     def get_client(self) -> DockerClient:
         raise NotImplementedError("Method 'get_client' needs to be implemented by child class")
 
@@ -434,7 +710,7 @@ Machine:
 """.format(type(self).__name__, self.name, self.base_url)
 
     def __eq__(self, other):
-        if not isinstance(other, Machine):
+        if not isinstance(other, CPKMachine):
             return False
         return other.base_url == self.base_url
 
@@ -442,4 +718,4 @@ Machine:
 @dataclasses.dataclass
 class CPKConfiguration:
     path: str
-    machines: Dict[str, Machine]
+    machines: Dict[str, CPKMachine]

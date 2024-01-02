@@ -10,7 +10,7 @@ import docker
 from cpk.exceptions import CPKException
 from docker import DockerClient
 
-from cpk.types import Machine
+from cpk.types import CPKMachine
 
 from cryptography.hazmat.primitives import serialization as crypto_serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -20,7 +20,7 @@ from sshconf import empty_ssh_config_file
 from cpk.utils.misc import configure_ssh_for_cpk
 
 
-class FromEnvMachine(Machine):
+class FromEnvMachine(CPKMachine):
 
     def __init__(self):
         super(FromEnvMachine, self).__init__("from-environment")
@@ -33,7 +33,7 @@ class FromEnvMachine(Machine):
         return docker.from_env()
 
 
-class TCPMachine(Machine):
+class TCPMachine(CPKMachine):
     type: str = "tcp"
 
     def __init__(self, name: str, host: str, port: Optional[Union[int, str]] = None):
@@ -66,7 +66,7 @@ class UnixSocketMachine(TCPMachine):
         return True
 
 
-class SSHMachine(Machine):
+class SSHMachine(CPKMachine):
     type: str = "ssh"
 
     def __init__(self, name: str, user: str, host: str, port: Optional[Union[str, int]] = 22):

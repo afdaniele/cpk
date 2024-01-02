@@ -3,11 +3,10 @@ from cpk.exceptions import CPKException
 from cpk.utils.progress_bar import ProgressBar
 from ..cli import cpklogger
 
-from ..types import Machine
+from ..types import CPKMachine
 
 DEFAULT_TCP_PORT = "2375"
 DEFAULT_MACHINE = "unix:///var/run/docker.sock"
-DEFAULT_REGISTRY = "docker.io"
 
 DOCKER_INFO = """
 Docker Endpoint:
@@ -22,7 +21,7 @@ Docker Endpoint:
 """
 
 
-def push_image(machine: Machine, image: str, progress=True) -> str:
+def push_image(machine: CPKMachine, image: str, progress=True) -> str:
     client = machine.get_client()
     # keep track of total/pushed layers
     layers = set()
@@ -57,17 +56,3 @@ def push_image(machine: Machine, image: str, progress=True) -> str:
         msg = "Expected to get final digest, but none arrived "
         cpklogger.warning(msg)
     return final_digest
-
-
-def transfer_image(origin: Machine, destination: Machine, image, image_size):
-    # TODO: re-implement this using in-Python sockets
-    # monitor_info = "" if which("pv") else " (install `pv` to see the progress)"
-    # cpklogger.info(f'Transferring image "{image}": [{origin}] -> [{destination}]'
-    #                f'{monitor_info}...')
-    # data_source = ["docker", "-H=%s" % origin, "save", image]
-    # data_destination = ["docker", "-H=%s" % destination, "load"]
-    # progress_monitor = ["|", "pv", "-cN", "image", "-s", image_size] if which("pv") else []
-    # cmd = data_source + progress_monitor + data_destination
-    # TODO: re-enable this
-    # start_command_in_subprocess(cmd, nostdout=True)
-    pass

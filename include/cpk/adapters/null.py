@@ -1,4 +1,4 @@
-from .generic import GenericAdapter, ProjectVersion
+from .generic import GenericAdapter
 
 
 class NullAdapter(GenericAdapter):
@@ -22,10 +22,6 @@ class NullAdapter(GenericAdapter):
     @property
     def description(self) -> None:
         return None
-
-    @property
-    def version(self) -> ProjectVersion:
-        return super(NullAdapter, self).version
 
     @property
     def maintainer(self) -> None:

@@ -77,11 +77,11 @@ class CLIDecorateCommand(AbstractCLICommand):
             cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
 
         # parse `input`
-        input_image = DockerImageName.from_image_name(parsed.input[0])
+        input_image = DockerImageName.parse(parsed.input[0])
         cpklogger.debug(f"+ Input Image:\n{str(input_image)}")
 
         # parse `output`
-        output_image = DockerImageName.from_image_name(parsed.output[0])
+        output_image = DockerImageName.parse(parsed.output[0])
 
         # append arch to the end of the output image
         if output_image.arch is None:

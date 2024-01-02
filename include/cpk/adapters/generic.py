@@ -1,15 +1,6 @@
 import getpass
-import dataclasses
 import os
 from typing import Optional
-
-
-@dataclasses.dataclass
-class ProjectVersion:
-    tag: str
-    head: Optional[str]
-    closest: Optional[str]
-    sha: Optional[str]
 
 
 class GenericAdapter:
@@ -37,15 +28,6 @@ class GenericAdapter:
     @property
     def description(self) -> Optional[str]:
         return None
-
-    @property
-    def version(self) -> ProjectVersion:
-        return ProjectVersion(
-            tag="latest",
-            head=None,
-            closest=None,
-            sha=None
-        )
 
     @property
     def maintainer(self) -> str:

@@ -1,42 +1,34 @@
 from typing import Optional
 
-from .generic import ProjectVersion
-from cpk.types import CPKProjectInfo
+import cpk
+
 from .null import NullAdapter
+from ..types import Maintainer
 
 
-class ProjectFileAdapter(NullAdapter):
+class ProjectLayersAdapter(NullAdapter):
 
-    def __init__(self, info: CPKProjectInfo):
-        super(ProjectFileAdapter, self).__init__('project.cpk')
-        self._info = info
+    def __init__(self, project: "cpk.CPKProject"):
+        super(ProjectLayersAdapter, self).__init__('project')
+        self._project = project
         self.enabled = True
 
     @property
     def name(self) -> str:
-        return self._info.name
+        return self._project.layers.self.name
 
     @property
     def registry(self) -> str:
-        return self._info.registry or "docker.io"
+        return self._project.docker.registry.compile() or "docker.io"
 
     @property
     def organization(self) -> str:
-        return self._info.organization
+        return self._project.layers.self.organization
 
     @property
     def description(self) -> Optional[str]:
-        return self._info.description
+        return self._project.layers.self.description
 
     @property
-    def version(self) -> ProjectVersion:
-        return ProjectVersion(
-            tag=self._info.tag or "latest",
-            head=self._info.version or None,
-            closest=self._info.version or None,
-            sha=None
-        )
-
-    @property
-    def maintainer(self) -> Optional[str]:
-        return self._info.maintainer
+    def maintainer(self) -> Maintainer:
+        return self._project.layers.self.maintainer

@@ -17,21 +17,30 @@ class NotACPKProjectException(CPKException):
              if os.path.isdir(path) else "Path does not exist."))
 
 
-class InvalidCPKProjectFile(CPKException):
+class DeprecatedCPKProjectFormat1Exception(CPKException):
+
+    def __init__(self, path: str):
+        super(DeprecatedCPKProjectFormat1Exception, self).__init__(
+            f"The path '{path}' contains a CPK project that uses an old and now deprecated format. "
+            f"You might want to downgrade your CPK to v1.0.x."
+        )
+
+
+class InvalidCPKProjectLayerFile(CPKException):
 
     def __init__(self, path: str, reason: Union[str, None] = None):
-        super(InvalidCPKProjectFile, self).__init__(
-            f"The path `{path}` contains an invalid CPK project file." + (
+        super(InvalidCPKProjectLayerFile, self).__init__(
+            f"The layer file `{path}` contains an invalid CPK project layer." + (
                 f" Reason: {reason}" if reason else ""
             ))
 
 
-class CPKProjectSchemaNotSupported(CPKException):
+class CPKProjectLayerSchemaNotSupported(CPKException):
 
-    def __init__(self, schema: str):
-        super(CPKProjectSchemaNotSupported, self).__init__(
-            f"The project schema used in this project (`{schema}`) is not supported by this "
-            f"version of CPK.")
+    def __init__(self, layer: str, schema: str):
+        super(CPKProjectLayerSchemaNotSupported, self).__init__(
+            f"The project schema version '{schema}' used by the layer '{layer}' in this project is not "
+            f"supported by this version of CPK.")
 
 
 class InvalidCPKTemplate(CPKException):

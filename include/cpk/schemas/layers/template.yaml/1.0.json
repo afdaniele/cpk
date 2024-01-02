@@ -1,0 +1,40 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "cpk-project-layer-template-1-0",
+    "title": "",
+    "type": "object",
+    "properties": {
+        "schema": {
+            "type": "string",
+            "const": "1.0"
+        },
+        "provider": {
+            "type": "string",
+            "format": "hostname"
+        },
+        "organization": {
+            "type": "string",
+            "minLength": 1
+        },
+        "name": {
+            "type": "string",
+            "minLength": 1
+        },
+        "version": {
+            "type": "string",
+            "minLength": 1
+        },
+        "url": {
+            "type": "string",
+            "format": "url"
+        }
+    },
+    "required": [
+        "schema",
+        "provider",
+        "organization",
+        "name",
+        "version"
+    ],
+    "additionalProperties": false
+}

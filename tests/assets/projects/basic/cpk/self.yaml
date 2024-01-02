@@ -1,0 +1,8 @@
+schema: "1.0"
+name: "PROJECT_NAME_HERE"
+organization: "PROJECT_ORGANIZATION_HERE"
+description: "PROJECT_DESCRIPTION_HERE"
+maintainer:
+    name: "YOUR_FULL_NAME"
+    email: "YOUR_EMAIL_ADDRESS"
+version: 0.0.0

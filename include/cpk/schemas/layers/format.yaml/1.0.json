@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "cpk-project-layer-format-1-0",
+    "title": "",
+    "type": "object",
+    "properties": {
+        "schema": {
+            "type": "string",
+            "const": "1.0"
+        },
+        "version": {
+            "type": "string",
+            "pattern": "^(0|([1-9][0-9]*))(\\.(0|([1-9][0-9]*))(\\.(0|([1-9][0-9]*))(\\.[a-z0-9-_]+)?)?)?$"
+        }
+    },
+    "required": [
+        "schema",
+        "version"
+    ],
+    "additionalProperties": false
+}

@@ -7,7 +7,7 @@ from typing import Optional, Type
 
 from cpk.cli.logger import cpklogger
 from cpk.constants import CANONICAL_ARCH
-from cpk.types import Machine, Arguments
+from cpk.types import CPKMachine, Arguments
 
 
 @dataclasses.dataclass
@@ -87,7 +87,7 @@ class AbstractCLICommand(ABC):
 
     @staticmethod
     @abstractmethod
-    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
         pass
 
 
