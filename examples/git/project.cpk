@@ -1,9 +1,0 @@
-{
-    "schema": "1.0",
-    "template": null,
-    "name": "basic-git",
-    "description": "A basic project with git support",
-    "organization": "cpk-examples",
-    "version": "0.0.0",
-    "maintainer": "Andrea F. Daniele"
-}

@@ -45,6 +45,9 @@ ENV \
     CPK_PROJECT_LAUNCHERS_PATH="${PROJECT_LAUNCHERS_PATH}" \
     CPK_LAUNCHER="${LAUNCHER}"
 
+# custom variables
+ENV MY_VAR=mdns
+
 # install apt dependencies
 COPY ./dependencies-apt.txt "${PROJECT_PATH}/"
 RUN cpk-apt-install ${PROJECT_PATH}/dependencies-apt.txt
@@ -58,8 +61,11 @@ COPY ./launchers/. "${PROJECT_LAUNCHERS_PATH}/"
 COPY ./launchers/default.sh "${PROJECT_LAUNCHERS_PATH}/"
 RUN cpk-install-launchers "${PROJECT_LAUNCHERS_PATH}"
 
-# copy project root
-COPY ./*.cpk ./*.sh ${PROJECT_PATH}/
+# copy the source code
+COPY ./packages "${CPK_PROJECT_PATH}/packages"
+
+# install packages dependencies
+RUN cpk-install-packages-dependencies
 
 # define default command
 CMD ["bash", "-c", "launcher-${CPK_LAUNCHER}"]

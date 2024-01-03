@@ -1,0 +1,8 @@
+schema: "1.0"
+name: "cpk-examples-minimal"
+organization: "cpk-examples"
+description: "Example minimal CPK project"
+maintainer:
+    name: "John Doe"
+    email: "cpk@example.com"
+version: 0.0.0
