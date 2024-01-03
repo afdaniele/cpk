@@ -65,7 +65,8 @@ def get_repo_info(path: str) -> GitRepository:
         detached=branch == "HEAD",
         version=GitRepositoryVersion(
             head=head_tag,
-            closest=closest_tag
+            closest=closest_tag,
+            sha=sha
         ),
         origin=GitRepositoryOrigin(
             url=origin_url,

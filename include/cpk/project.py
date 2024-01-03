@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from typing import Dict, Union, List, Optional
 
+import cpk
 import jsonschema
 import requests
 import yaml
@@ -31,7 +32,8 @@ class CPKProject:
         if os.path.isfile(os.path.join(self._path, "project.cpk")):
             raise DeprecatedCPKProjectFormat1Exception(self._path)
         # make sure this is a CPK project
-        if not os.path.isdir(os.path.join(self._path, "cpk")):
+        if not os.path.isdir(os.path.join(self._path, "cpk")) or \
+                not os.path.isfile(os.path.join(self._path, "cpk", "self.yaml")):
             raise NotACPKProjectException(self._path)
         # read layers
         layers_raw: Dict[str, dict] = self._read_layers(self._path)
@@ -86,9 +88,11 @@ class CPKProject:
     def docker(self) -> CPKProjectDocker:
         return self._docker
 
-    # @property
-    # def template(self) -> CPKTemplateInfo:
-    #     return self._info.template
+    def fetch_template(self, tmp_dir: Optional[str] = None) -> Optional['cpk.CPKTemplate']:
+        from .template import CPKTemplate
+        if self.layers.template is None:
+            return None
+        return CPKTemplate(self.layers.template, tmp_dir=tmp_dir)
 
     @property
     def repository(self) -> GitRepository:
@@ -213,7 +217,7 @@ class CPKProject:
         launchers = [Path(f).stem for f in files if os.access(f, os.X_OK) or _has_shebang(f)]
         return launchers
 
-    # def image_metadata(self, machine: Machine, arch: str):
+    # def image_metadata(self, machine: CPKMachine, arch: str):
     #     image_name = self.image(arch)
     #     try:
     #         image = machine.get_client().images.get(image_name)
@@ -221,7 +225,7 @@ class CPKProject:
     #     except (APIError, ImageNotFound):
     #         return None
     #
-    # def image_labels(self, machine: Machine, arch: str):
+    # def image_labels(self, machine: CPKMachine, arch: str):
     #     image_name = self.image(arch)
     #     try:
     #         image = machine.get_client().images.get(image_name)

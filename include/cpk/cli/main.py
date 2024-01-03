@@ -11,6 +11,7 @@ from cpk.cli.commands.clean import CLICleanCommand
 from cpk.cli.commands.create import CLICreateCommand
 from cpk.cli.commands.decorate import CLIDecorateCommand
 from cpk.cli.commands.endpoint import CLIEndpointCommand
+from cpk.cli.commands.template import CLITemplateCommand
 from cpk.cli.commands.info import CLIInfoCommand
 from cpk.cli.commands.machine import CLIMachineCommand
 from cpk.cli.commands.pull import CLIPullCommand
@@ -31,6 +32,7 @@ _supported_commands = {
     'decorate': CLIDecorateCommand,
     'machine': CLIMachineCommand,
     'endpoint': CLIEndpointCommand,
+    'template': CLITemplateCommand,
 }
 
 

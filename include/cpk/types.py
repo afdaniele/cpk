@@ -101,6 +101,10 @@ class CPKProjectTemplateLayer(CPKProjectLayer):
     version: str
     url: Optional[str] = None
 
+    @property
+    def git_url(self) -> str:
+        return f"https://{self.provider}/{self.organization}/{self.name}.git"
+
     @classmethod
     def parse(cls, data: dict) -> 'CPKProjectTemplateLayer':
         return CPKProjectTemplateLayer(
@@ -190,8 +194,8 @@ class CPKProjectLayersContainer:
     _others: Dict[str, dict]
     _self: CPKProjectSelfLayer
     _format: CPKProjectFormatLayer
-    _template: CPKProjectTemplateLayer
     _base: CPKProjectBaseLayer
+    _template: Optional[CPKProjectTemplateLayer] = None
     _structure: Optional[CPKProjectStructureLayer] = None
 
     @property
@@ -203,12 +207,12 @@ class CPKProjectLayersContainer:
         return self._format
 
     @property
-    def template(self) -> CPKProjectTemplateLayer:
-        return self._template
-
-    @property
     def base(self) -> CPKProjectBaseLayer:
         return self._base
+
+    @property
+    def template(self) -> Optional[CPKProjectTemplateLayer]:
+        return self._template
 
     @property
     def structure(self) -> Optional[CPKProjectStructureLayer]:
@@ -449,17 +453,20 @@ class DockerImage:
             extras=extras,
         )
 
-    # def release_name(self, arch: str, docs: bool = False, avoid_defaults: bool = False) -> str:
-    #     if not self.is_release():
-    #         raise ValueError("The project repository is not in a release state")
-    #     assert_canonical_arch(arch)
-    #     docs = "-docs" if docs else ""
-    #     version = re.sub(r"[^\w\-.]", "-", self.version.head)
-    #     image = f"{self.organization}/{self.name}:{version}{docs}-{arch}"
-    #     registry = self.registry
-    #     if not avoid_defaults or registry != DEFAULT_REGISTRY:
-    #         image = f"{self.registry}/{image}"
-    #     return image.lower()
+    def release_name(self, arch: str, registry: str = DEFAULT_DOCKER_REGISTRY, extras: List[str] = None) \
+            -> DockerImageName:
+        if not self.__project.is_release():
+            raise ValueError("The project repository is not in a release state")
+        assert_canonical_arch(arch)
+        extras = extras or []
+        return DockerImageName(
+            registry=DockerRegistry(hostname=registry),
+            repository=self._safe_string(self.__project.name),
+            organization=self._safe_string(self.__project.organization),
+            tag=self._safe_string(self.__project.repository.version.head),
+            arch=arch,
+            extras=extras,
+        )
 
 
 @dataclasses.dataclass

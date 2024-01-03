@@ -13,7 +13,7 @@ class NotACPKProjectException(CPKException):
     def __init__(self, path: str):
         super(NotACPKProjectException, self).__init__(
             f"The path '{path}' does not appear to be a CPK project. " +
-            (f"The metadata files 'project.cpk' and 'template.cpk' might be missing."
+            (f"The metadata file 'cpk/self.yaml' is missing."
              if os.path.isdir(path) else "Path does not exist."))
 
 

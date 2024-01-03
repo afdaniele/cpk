@@ -1,10 +1,12 @@
 import os
 import unittest
+from typing import Optional
 
 import yaml
 
 from cpk import CPKProject
-from cpk.types import CPKProjectSelfLayer, CPKProjectTemplateLayer, CPKProjectFormatLayer, CPKProjectBaseLayer
+from cpk.types import CPKProjectSelfLayer, CPKProjectTemplateLayer, CPKProjectFormatLayer, \
+    CPKProjectBaseLayer, CPKProjectStructureLayer
 
 TEST_PROJECTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets", "projects"))
 DEFAULT_ARCH: str = "amd64"
@@ -34,16 +36,6 @@ class TestMinimalProject(unittest.TestCase):
         self.assertEqual(layer.distribution, layer_raw.get("distribution", None))
         self.assertEqual(layer.url, layer_raw.get("url", None))
 
-    def test_layer_template(self):
-        project: CPKProject = self.get_project("minimal")
-        layer: CPKProjectTemplateLayer = project.layers.template
-        layer_raw: dict = self.get_project_layer_raw("minimal", "template")
-        self.assertEqual(layer.provider, layer_raw["provider"])
-        self.assertEqual(layer.organization, layer_raw["organization"])
-        self.assertEqual(layer.name, layer_raw["name"])
-        self.assertEqual(layer.version, layer_raw["version"])
-        self.assertEqual(layer.url, layer_raw.get("url", None))
-
     def test_layer_format(self):
         project: CPKProject = self.get_project("minimal")
         layer: CPKProjectFormatLayer = project.layers.format
@@ -58,6 +50,16 @@ class TestMinimalProject(unittest.TestCase):
         self.assertEqual(layer.organization, layer_raw["organization"])
         self.assertEqual(layer.repository, layer_raw["repository"])
         self.assertEqual(layer.tag, layer_raw["tag"])
+
+    def test_layer_template(self):
+        project: CPKProject = self.get_project("minimal")
+        layer: Optional[CPKProjectTemplateLayer] = project.layers.template
+        self.assertEqual(layer, None)
+
+    def test_layer_structure(self):
+        project: CPKProject = self.get_project("minimal")
+        layer: Optional[CPKProjectStructureLayer] = project.layers.structure
+        self.assertEqual(layer, None)
 
 
 if __name__ == '__main__':
