@@ -105,6 +105,10 @@ class CPKProjectTemplateLayer(CPKProjectLayer):
     def git_url(self) -> str:
         return f"https://{self.provider}/{self.organization}/{self.name}.git"
 
+    @property
+    def compact(self) -> str:
+        return f"{self.provider}:{self.organization}/{self.name}@{self.version}"
+
     @classmethod
     def parse(cls, data: dict) -> 'CPKProjectTemplateLayer':
         return CPKProjectTemplateLayer(
@@ -430,7 +434,7 @@ Arch:\t\t{self.arch}
 
 @dataclasses.dataclass
 class DockerImage:
-    __project: 'cpk.CPKProject'
+    _project: 'cpk.CPKProject'
 
     def fetch(self) -> Image:
         # TODO: implement this
@@ -446,24 +450,24 @@ class DockerImage:
         extras = extras or []
         return DockerImageName(
             registry=DockerRegistry(hostname=registry),
-            repository=self._safe_string(self.__project.name),
-            organization=self._safe_string(self.__project.organization),
-            tag=self._safe_string(self.__project.layers.self.distribution or DEFAULT_DOCKER_TAG),
+            repository=self._safe_string(self._project.name),
+            organization=self._safe_string(self._project.organization),
+            tag=self._safe_string(self._project.layers.self.distribution or DEFAULT_DOCKER_TAG),
             arch=arch,
             extras=extras,
         )
 
     def release_name(self, arch: str, registry: str = DEFAULT_DOCKER_REGISTRY, extras: List[str] = None) \
             -> DockerImageName:
-        if not self.__project.is_release():
+        if not self._project.is_release():
             raise ValueError("The project repository is not in a release state")
         assert_canonical_arch(arch)
         extras = extras or []
         return DockerImageName(
             registry=DockerRegistry(hostname=registry),
-            repository=self._safe_string(self.__project.name),
-            organization=self._safe_string(self.__project.organization),
-            tag=self._safe_string(self.__project.repository.version.head),
+            repository=self._safe_string(self._project.name),
+            organization=self._safe_string(self._project.organization),
+            tag=self._safe_string(self._project.repository.version.head),
             arch=arch,
             extras=extras,
         )
@@ -479,7 +483,7 @@ class CPKProjectDocker:
 
     @property
     def image(self) -> DockerImage:
-        return DockerImage(__project=self._project)
+        return DockerImage(_project=self._project)
 
 
 class CPKFileMappingTrigger(Enum):

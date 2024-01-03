@@ -18,6 +18,7 @@ from .endpoint import CLIEndpointInfoCommand
 from .info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
+from ..utils import combine_args
 from ...exceptions import NotACPKProjectException
 from ...types import CPKFileMappingTrigger, CPKMachine, Arguments, CPKFileMapping
 from ...utils.cli import check_git_status
@@ -142,19 +143,15 @@ class CLIRunCommand(AbstractCLICommand):
             type=str,
             help="Custom tag"
         )
-        # parser.add_argument(
-        #     "subcommand",
-        #     nargs="?",
-        #     default=None,
-        #     choices=SUPPORTED_SUBCOMMANDS,
-        #     help="(Optional) Subcommand to execute"
-        # )
         return parser
 
     @staticmethod
-    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace, **kwargs) -> bool:
+        # combine arguments
+        parsed = combine_args(parsed, kwargs)
+        # ---
         # get project
-        project = CPKProject(parsed.workdir, parsed=parsed)
+        project = CPKProject(parsed.workdir)
 
         # show info about project
         CLIInfoCommand.execute(machine, parsed)
@@ -166,7 +163,7 @@ class CLIRunCommand(AbstractCLICommand):
             return False
 
         # get info about docker endpoint
-        CLIEndpointInfoCommand.execute(machine, parsed)
+        CLIEndpointInfoCommand.execute(machine, parsed, quiet=True)
 
         # pick right value of `arch` given endpoint
         machine_arch = machine.get_architecture()
@@ -179,7 +176,7 @@ class CLIRunCommand(AbstractCLICommand):
         docker = machine.get_client()
 
         # create defaults
-        image = project.image(parsed.arch)
+        image: str = project.docker.image.name(parsed.arch).compile()
         parsed.name = parsed.name or f"cpk-run-{project.name.replace('/', '-')}"
 
         # subcommand "attach"
@@ -339,7 +336,7 @@ class CLIRunCommand(AbstractCLICommand):
         # mappings
         for proj in projects_to_mount:
             # iterate over list of mappings
-            for mapping in proj.mappings:
+            for mapping in proj.layers.get("mounts", []):
                 if len(triggers.intersection(mapping.triggers)) <= 0:
                     continue
                 # ---

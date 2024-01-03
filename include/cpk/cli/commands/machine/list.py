@@ -3,6 +3,7 @@ from typing import Optional
 
 from cpk import cpkconfig
 from cpk.cli import AbstractCLICommand, cpklogger
+from cpk.cli.utils import combine_args
 from cpk.types import CPKMachine, Arguments
 
 
@@ -18,7 +19,10 @@ class CLIMachineListCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(_: CPKMachine, parsed: argparse.Namespace) -> bool:
+    def execute(_: CPKMachine, parsed: argparse.Namespace, **kwargs) -> bool:
+        # combine arguments
+        parsed = combine_args(parsed, kwargs)
+        # ---
         machines = cpkconfig.machines
         if len(machines) == 0:
             cpklogger.info("No machines found")

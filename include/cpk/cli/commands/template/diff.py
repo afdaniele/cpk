@@ -4,6 +4,7 @@ from typing import Optional
 from cpk import CPKProject, CPKTemplate
 
 from cpk.cli import AbstractCLICommand, cpklogger
+from cpk.cli.utils import combine_args
 from cpk.template import CPKProjectDiff
 from cpk.types import CPKMachine, Arguments
 
@@ -21,7 +22,10 @@ class CLITemplateDiffCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(_: CPKMachine, parsed: argparse.Namespace) -> bool:
+    def execute(_: CPKMachine, parsed: argparse.Namespace, **kwargs) -> bool:
+        # combine arguments
+        parsed = combine_args(parsed, kwargs)
+        # ---
         # get project
         project = CPKProject(parsed.workdir)
         # get template

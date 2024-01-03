@@ -175,6 +175,24 @@ class CPKProject:
             self.label("code.version.head"): self.repository.version.head or "ND",
             self.label("code.version.closest"): self.repository.version.closest or "ND",
             self.label("code.version.sha"): sha,
+            
+            # TODO: we want to represent the hierarchy of images using labels,
+            #  we can do this by using the following labels:
+            #
+            #     cpk.label.current.level: <int>
+            #     cpk.label.level.<int>.description: <str>
+            #     cpk.label.level.<int>.code.location: <str>
+            #     cpk.label.level.<int>.base.registry: <str>
+            #     cpk.label.level.<int>.base.organization: <str>
+            #     cpk.label.level.<int>.base.project: <str>
+            #     cpk.label.level.<int>.base.tag: <str>
+            #     cpk.label.level.<int>.maintainer: <str>
+            #
+            #   so that we can follow the hierarchi starting from `cpk.label.current.level` up to 0
+            #   when we build an image, we add 1 to the base level
+            #   Use local base image if found, otherwise use the remote labels
+            #
+            
             #
             # cpk.label.current="${ORGANIZATION}.${NAME}" \
             # cpk.label.project.${ORGANIZATION}.${NAME}.description="${DESCRIPTION}" \

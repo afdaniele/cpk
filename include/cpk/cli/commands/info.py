@@ -6,22 +6,22 @@ import termcolor as tc
 from cpk import CPKProject
 from .. import AbstractCLICommand
 from ..logger import cpklogger
+from ..utils import combine_args
 from ...types import CPKMachine, Arguments
 
-PROJECT_INFO = """
-{project}
-{space} Name: {name}
-{space} Tag: {tag}
-{space} Version: {version}
-{space} Template:
-{space}   Name: {template_name}
-{space}   Version: {template_version}
-{space} Index: {index}
-{space} Path: {path}
-{space} URL: {url}
-{space} Adapters: {adapters}
-{end}
-"""
+w = "\033[37m"
+x = "\033[0m"
+
+PROJECT_INFO = f"""
+----------- Project Info -----------
+  {w}Name:{x} {{name}}
+  {w}Distibution:{x} {{distribution}}
+  {w}Version:{x} {{version}}
+  {w}Template:{x} {{template}}
+  {w}Index:{x} {{index}}
+  {w}Path:{x} {{path}}
+  {w}URL:{x} {{url}}
+------------------------------------"""
 
 
 class CLIInfoCommand(AbstractCLICommand):
@@ -35,7 +35,10 @@ class CLIInfoCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: Optional[CPKMachine], parsed: argparse.Namespace) -> bool:
+    def execute(machine: Optional[CPKMachine], parsed: argparse.Namespace, **kwargs) -> bool:
+        # combine arguments
+        parsed = combine_args(parsed, kwargs)
+        # ---
         cpklogger.info("Project workspace: {}".format(parsed.workdir))
 
         # get the project
@@ -47,20 +50,14 @@ class CLIInfoCommand(AbstractCLICommand):
 
         # show info about project
         info = {
-            "project": tc.colored("Project:", "grey", "on_white"),
             "name": project.name,
-            "tag": project.version.tag,
-            "version": project.version.head or "unreleased",
-            "template_name": project.template.name,
-            "template_version": project.template.version,
+            "distribution": project.layers.self.distribution or "ND",
+            "version": project.repository.version.head or "unreleased",
+            "template": project.layers.template.compact if project.layers.template else "ND",
             "index": index,
             "path": project.path,
-            "url": project.url or "(none)",
-            "adapters": " ".join(project.adapters.keys()),
-            "space": tc.colored("  ", "grey", "on_white"),
-            "end": tc.colored("________", "grey", "on_white"),
+            "url": project.url or "ND",
         }
         print(PROJECT_INFO.format(**info))
-
         # ---
         return True

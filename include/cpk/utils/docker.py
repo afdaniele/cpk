@@ -8,16 +8,20 @@ from ..types import CPKMachine
 DEFAULT_TCP_PORT = "2375"
 DEFAULT_MACHINE = "unix:///var/run/docker.sock"
 
-DOCKER_INFO = """
-Docker Endpoint:
-  Machine: {machine}
-  Hostname: {Name}
-  Operating System: {OperatingSystem}
-  Kernel Version: {KernelVersion}
-  OSType: {OSType}
-  Architecture: {Architecture}
-  Total Memory: {MemTotal}
-  CPUs: {NCPU}
+w = "\033[37m"
+x = "\033[0m"
+
+DOCKER_INFO = f"""
+------- Docker Endpoint Info --------
+  {w}Machine:{x} {{machine}}
+  {w}Hostname:{x} {{Name}}
+  {w}Operating System:{x} {{OperatingSystem}}
+  {w}Kernel Version:{x} {{KernelVersion}}
+  {w}OSType:{x} {{OSType}}
+  {w}Architecture:{x} {{Architecture}}
+  {w}Total Memory:{x} {{MemTotal}}
+  {w}CPUs:{x} {{NCPU}}
+------------------------------------
 """
 
 

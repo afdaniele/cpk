@@ -37,3 +37,11 @@ def hide_argument(parser: argparse.ArgumentParser, arg: str, suppress_errors: bo
     except Exception as e:
         if not suppress_errors:
             raise e
+
+
+def combine_args(parsed: argparse.Namespace, kwargs: dict) -> argparse.Namespace:
+    # combine arguments
+    for k, v in kwargs.items():
+        parsed.__setattr__(k, v)
+    # ---
+    return parsed

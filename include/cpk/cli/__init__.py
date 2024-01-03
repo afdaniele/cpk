@@ -58,6 +58,13 @@ class AbstractCLICommand(ABC):
             help="Whether to force the action",
         )
         parser.add_argument(
+            "-qq",
+            "--quiet",
+            default=False,
+            action="store_true",
+            help="Only print important messages"
+        )
+        parser.add_argument(
             "-vv",
             "--verbose",
             default=False,
@@ -87,7 +94,7 @@ class AbstractCLICommand(ABC):
 
     @staticmethod
     @abstractmethod
-    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace, **kwargs) -> bool:
         pass
 
 

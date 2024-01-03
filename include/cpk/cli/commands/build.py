@@ -13,6 +13,7 @@ from .endpoint import CLIEndpointInfoCommand
 from .info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
+from ..utils import combine_args
 from ...project import CPKProject
 from ...constants import ARCH_TO_DOCKER_PLATFORM
 from ...exceptions import CPKProjectBuildException
@@ -110,7 +111,10 @@ class CLIBuildCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace, **kwargs) -> bool:
+        # combine arguments
+        parsed = combine_args(parsed, kwargs)
+        # ---
         stime = time.time()
 
         # get project
@@ -125,7 +129,7 @@ class CLIBuildCommand(AbstractCLICommand):
             return False
 
         # get info about docker endpoint
-        CLIEndpointInfoCommand.execute(machine, parsed)
+        CLIEndpointInfoCommand.execute(machine, parsed, quiet=True)
 
         # pick right value of `arch` given endpoint
         machine_arch = machine.get_architecture()
@@ -142,10 +146,11 @@ class CLIBuildCommand(AbstractCLICommand):
         # - add project build args
         buildargs["buildargs"].update({
             "ARCH": parsed.arch,
-            "NAME": project.name,
-            "DESCRIPTION": project.description,
-            "ORGANIZATION": project.organization,
-            "MAINTAINER": project.maintainer
+            "PROJECT_NAME": project.name,
+            "BASE_REGISTRY": project.layers.base.registry,
+            "BASE_ORGANIZATION": project.layers.base.organization,
+            "BASE_REPOSITORY": project.layers.base.repository,
+            "BASE_TAG": project.layers.base.tag,
         })
         # - add project labels
         buildargs["labels"].update(project.build_labels())

@@ -6,6 +6,7 @@ from cpk.cli.commands.info import CLIInfoCommand
 from cpk import CPKProject
 
 from .. import AbstractCLICommand, cpklogger
+from ..utils import combine_args
 from ...types import CPKMachine, Arguments
 
 
@@ -20,7 +21,10 @@ class CLICleanCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace, **kwargs) -> bool:
+        # combine arguments
+        parsed = combine_args(parsed, kwargs)
+        # ---
         # get project
         project = CPKProject(parsed.workdir)
 

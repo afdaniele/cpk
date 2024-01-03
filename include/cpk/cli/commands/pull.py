@@ -1,11 +1,12 @@
 import argparse
-from typing import Optional
+from typing import Optional, List
 
 from docker.errors import APIError
 
 from .endpoint import CLIEndpointInfoCommand
 from .info import CLIInfoCommand
 from .. import AbstractCLICommand, cpklogger
+from ..utils import combine_args
 from ... import CPKProject
 from ...exceptions import CPKProjectPullException
 from ...types import CPKMachine, Arguments
@@ -34,7 +35,10 @@ class CLIPullCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace, **kwargs) -> bool:
+        # combine arguments
+        parsed = combine_args(parsed, kwargs)
+        # ---
         # get project
         project = CPKProject(parsed.workdir)
 
@@ -51,15 +55,19 @@ class CLIPullCommand(AbstractCLICommand):
             cpklogger.info(f"Parameter `arch` automatically set to `{parsed.arch}`.")
 
         # create defaults
-        images = [project.image(parsed.arch)]
+        images: List[str] = [
+            project.docker.image.name(parsed.arch).compile()
+        ]
 
         # release image
         if parsed.release and project.is_release():
-            images += [project.image_release(parsed.arch)]
+            images += [
+                project.docker.image.release_name(parsed.arch).compile()
+            ]
 
         for image in images:
             # print info about registry
-            msg = "Pulling image {} from {}.".format(image, project.registry)
+            msg = "Pulling image {} from {}.".format(image, project.docker.registry.compile(True))
             cpklogger.info(msg)
             # pull image
             try:

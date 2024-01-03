@@ -10,6 +10,7 @@ from cpk.utils.misc import configure_binfmt
 from .endpoint import CLIEndpointInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
+from ..utils import combine_args
 from ...types import DockerImageName, CPKMachine, Arguments
 
 
@@ -69,7 +70,10 @@ class CLIDecorateCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace, **kwargs) -> bool:
+        # combine arguments
+        parsed = combine_args(parsed, kwargs)
+        # ---
         # pick right value of `arch` given endpoint
         if parsed.arch is None:
             cpklogger.info("Parameter `arch` not given, will resolve it from the endpoint.")
@@ -132,10 +136,10 @@ class CLIDecorateCommand(AbstractCLICommand):
             "-f", dockerfile,
             "--build-arg", f"ARCH={parsed.arch}",
             "--build-arg", f"BASE_REGISTRY={input_image.registry.compile(allow_defaults=True)}",
-            "--build-arg", f"BASE_ORGANIZATION={input_image.user}",
+            "--build-arg", f"BASE_ORGANIZATION={input_image.organization}",
             "--build-arg", f"BASE_REPOSITORY={input_image.repository}",
             "--build-arg", f"BASE_TAG={input_image.tag}",
-            "--build-arg", f"ORGANIZATION={output_image.user}",
+            "--build-arg", f"ORGANIZATION={output_image.organization}",
             "--build-arg", f"NAME={output_image.repository}",
             "--build-arg", f"MAINTAINER={maintainer}",
             "--build-arg", f"CPK_VERSION={cpk.__version__}",

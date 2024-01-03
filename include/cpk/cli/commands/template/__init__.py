@@ -37,6 +37,6 @@ class CLITemplateCommand(AbstractCLICommand):
         return subcommand.parser(parser, args)
 
     @staticmethod
-    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace, **kwargs) -> bool:
         subcommand = _supported_subcommands[parsed.subcommand]
         return subcommand.execute(machine, parsed)

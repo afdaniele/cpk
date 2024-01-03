@@ -5,6 +5,7 @@ from typing import Optional, Type
 
 from cpk import cpkconfig
 from cpk.cli import AbstractCLICommand, cpklogger
+from cpk.cli.utils import combine_args
 from cpk.machine import SSHMachine, TCPMachine
 from cpk.types import CPKMachine, Arguments
 
@@ -52,7 +53,10 @@ class CLIMachineCreateCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace, **kwargs) -> bool:
+        # combine arguments
+        parsed = combine_args(parsed, kwargs)
+        # ---
         # validate machine's name
         if not re.match(r"^[a-zA-Z][a-zA-Z0-9\-_.]+[a-zA-Z0-9]$", parsed.name):
             cpklogger.error("Invalid name for a machine. "
