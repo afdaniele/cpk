@@ -10,7 +10,7 @@ from cpk.utils.misc import configure_binfmt
 from .endpoint import CLIEndpointInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
-from ...types import DockerImageName, Machine, Arguments
+from ...types import DockerImageName, CPKMachine, Arguments
 
 
 class CLIDecorateCommand(AbstractCLICommand):
@@ -69,7 +69,7 @@ class CLIDecorateCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
         # pick right value of `arch` given endpoint
         if parsed.arch is None:
             cpklogger.info("Parameter `arch` not given, will resolve it from the endpoint.")

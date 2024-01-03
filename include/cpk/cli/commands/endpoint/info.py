@@ -6,7 +6,7 @@ from cpk.utils.misc import human_size
 from cpk.utils.docker import DOCKER_INFO
 
 from cpk.cli import AbstractCLICommand, cpklogger
-from cpk.types import Machine, Arguments
+from cpk.types import CPKMachine, Arguments
 
 
 class CLIEndpointInfoCommand(AbstractCLICommand):
@@ -21,7 +21,7 @@ class CLIEndpointInfoCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
         # create docker client
         docker = machine.get_client()
 

@@ -3,7 +3,7 @@ from typing import Optional, Dict, Type
 
 from cpk.cli import AbstractCLICommand
 from cpk.cli.commands.endpoint.info import CLIEndpointInfoCommand
-from cpk.types import Machine, Arguments
+from cpk.types import CPKMachine, Arguments
 
 _supported_subcommands: Dict[str, Type[AbstractCLICommand]] = {
     "info": CLIEndpointInfoCommand,
@@ -30,6 +30,6 @@ class CLIEndpointCommand(AbstractCLICommand):
         return subcommand.parser(parser, args)
 
     @staticmethod
-    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
         subcommand = _supported_subcommands[parsed.subcommand]
         return subcommand.execute(machine, parsed)

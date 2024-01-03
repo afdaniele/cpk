@@ -9,7 +9,7 @@ from typing import Optional
 from cpk.cli.commands.info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
-from ...types import Machine, Arguments
+from ...types import CPKMachine, Arguments
 
 skel_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "skeleton"))
 surgery = {
@@ -55,7 +55,7 @@ class CLICreateCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: Optional[Machine], parsed: argparse.Namespace) -> bool:
+    def execute(machine: Optional[CPKMachine], parsed: argparse.Namespace) -> bool:
         parsed.workdir = os.path.abspath(parsed.path)
 
         # make sure the path does not exist or it is empty

@@ -19,7 +19,7 @@ from .info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
 from ...exceptions import NotACPKProjectException
-from ...types import CPKFileMappingTrigger, Machine, Arguments, CPKFileMapping
+from ...types import CPKFileMappingTrigger, CPKMachine, Arguments, CPKFileMapping
 from ...utils.cli import check_git_status
 
 SUPPORTED_SUBCOMMANDS = [
@@ -152,7 +152,7 @@ class CLIRunCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
         # get project
         project = CPKProject(parsed.workdir, parsed=parsed)
 
@@ -183,7 +183,7 @@ class CLIRunCommand(AbstractCLICommand):
         parsed.name = parsed.name or f"cpk-run-{project.name.replace('/', '-')}"
 
         # subcommand "attach"
-        # TODO: this will not work with Machine created from env, the host will be None
+        # TODO: this will not work with CPKMachine created from env, the host will be None
         # if parsed.subcommand == "attach":
         #     cpklogger.info(f"Attempting to attach to container '{parsed.name}'...")
         #     # run

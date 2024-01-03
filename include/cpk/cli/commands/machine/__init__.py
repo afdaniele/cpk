@@ -6,7 +6,7 @@ from cpk.cli.commands.machine.create import CLIMachineCreateCommand
 from cpk.cli.commands.machine.info import CLIMachineInfoCommand
 from cpk.cli.commands.machine.list import CLIMachineListCommand
 from cpk.cli.commands.machine.remove import CLIMachineRemoveCommand
-from cpk.types import Machine, Arguments
+from cpk.types import CPKMachine, Arguments
 
 _supported_subcommands: Dict[str, Type[AbstractCLICommand]] = {
     "create": CLIMachineCreateCommand,
@@ -38,6 +38,6 @@ class CLIMachineCommand(AbstractCLICommand):
         return subcommand.parser(parser, args)
 
     @staticmethod
-    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
         subcommand = _supported_subcommands[parsed.subcommand]
         return subcommand.execute(machine, parsed)

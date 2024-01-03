@@ -8,7 +8,7 @@ from .info import CLIInfoCommand
 from .. import AbstractCLICommand, cpklogger
 from ... import CPKProject
 from ...exceptions import CPKProjectPullException
-from ...types import Machine, Arguments
+from ...types import CPKMachine, Arguments
 
 
 class CLIPullCommand(AbstractCLICommand):
@@ -34,9 +34,9 @@ class CLIPullCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
         # get project
-        project = CPKProject(parsed.workdir, parsed=parsed)
+        project = CPKProject(parsed.workdir)
 
         # show info about project
         CLIInfoCommand.execute(machine, parsed)

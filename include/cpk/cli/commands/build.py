@@ -9,19 +9,17 @@ from typing import Optional
 from docker.errors import ImageNotFound, APIError
 from termcolor import colored
 
-from cpk import CPKProject, cpkconfig
-from cpk.utils.docker import transfer_image
-from cpk.utils.misc import human_time, configure_binfmt
 from .endpoint import CLIEndpointInfoCommand
 from .info import CLIInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
+from ...project import CPKProject
 from ...constants import ARCH_TO_DOCKER_PLATFORM
 from ...exceptions import CPKProjectBuildException
-from ...types import Machine, Arguments
+from ...types import Arguments, CPKMachine
 from ...utils.cli import check_git_status
+from ...utils.misc import human_time, configure_binfmt
 from ...utils.image_analyzer import EXTRA_INFO_SEPARATOR, ImageAnalyzer, SEPARATORS_LENGTH
-from ...utils.machine import get_machine
 
 
 class CLIBuildCommand(AbstractCLICommand):
@@ -92,13 +90,6 @@ class CLIBuildCommand(AbstractCLICommand):
         )
         # TODO: to be implemented
         parser.add_argument(
-            "-D",
-            "--destination",
-            default=None,
-            help="CPK machine or endpoint hostname where to deliver the image once built"
-        )
-        # TODO: to be implemented
-        parser.add_argument(
             "--docs",
             default=False,
             action="store_true",
@@ -119,11 +110,11 @@ class CLIBuildCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
         stime = time.time()
 
         # get project
-        project = CPKProject(parsed.workdir, parsed=parsed)
+        project = CPKProject(parsed.workdir)
 
         # show info about project
         CLIInfoCommand.execute(None, parsed)
@@ -163,7 +154,7 @@ class CLIBuildCommand(AbstractCLICommand):
             str(parsed.ncpus) if parsed.ncpus else str(machine.get_ncpus())
 
         # create defaults
-        image = project.image(parsed.arch)
+        image: str = project.docker.image.name(parsed.arch).compile()
 
         # print info about multiarch
         cpklogger.info("Building an image for {} on {}.".format(parsed.arch, machine_arch))
@@ -224,7 +215,8 @@ class CLIBuildCommand(AbstractCLICommand):
             else:
                 # project is clean
                 build_time = None
-                local_sha = project.version.sha
+                # TODO: this can be None
+                local_sha = project.repository.sha
                 # get remote image metadata
                 try:
                     # TODO: parsed.machine is now NONE
@@ -282,7 +274,7 @@ class CLIBuildCommand(AbstractCLICommand):
 
         # tag release images
         if project.is_release():
-            rimage = project.image_release(parsed.arch, avoid_defaults=True)
+            rimage: str = project.docker.image.release_name(parsed.arch).compile()
             dimage.tag(*rimage.split(":"))
             msg = f"Successfully tagged {rimage}"
             buildlog.append(msg)
@@ -324,14 +316,6 @@ class CLIBuildCommand(AbstractCLICommand):
         _, _, final_image_size = ImageAnalyzer.process(
             buildlog, historylog, extra_info=extra_info
         )
-        # pull image (if the destination is different from the builder machine)
-        if parsed.destination and machine.base_url != parsed.destination:
-            transfer_image(
-                origin=machine,
-                destination=get_machine(parsed.destination, cpkconfig.machines),
-                image=image,
-                image_size=final_image_size,
-            )
         # perform push (if needed)
         if parsed.push:
             # call command `push`

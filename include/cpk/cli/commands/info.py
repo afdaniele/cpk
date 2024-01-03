@@ -6,7 +6,7 @@ import termcolor as tc
 from cpk import CPKProject
 from .. import AbstractCLICommand
 from ..logger import cpklogger
-from ...types import Machine, Arguments
+from ...types import CPKMachine, Arguments
 
 PROJECT_INFO = """
 {project}
@@ -35,7 +35,7 @@ class CLIInfoCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: Optional[Machine], parsed: argparse.Namespace) -> bool:
+    def execute(machine: Optional[CPKMachine], parsed: argparse.Namespace) -> bool:
         cpklogger.info("Project workspace: {}".format(parsed.workdir))
 
         # get the project

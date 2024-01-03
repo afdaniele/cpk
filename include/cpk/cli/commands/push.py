@@ -8,7 +8,7 @@ from .info import CLIInfoCommand
 from .. import AbstractCLICommand, cpklogger
 from ... import CPKProject
 from ...exceptions import CPKProjectPushException
-from ...types import Machine, Arguments
+from ...types import CPKMachine, Arguments
 from ...utils.cli import check_git_status
 from ...utils.docker import push_image
 
@@ -42,7 +42,7 @@ class CLIPushCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
         # get project
         project = CPKProject(parsed.workdir, parsed=parsed)
 

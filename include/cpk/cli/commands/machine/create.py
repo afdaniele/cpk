@@ -6,14 +6,14 @@ from typing import Optional, Type
 from cpk import cpkconfig
 from cpk.cli import AbstractCLICommand, cpklogger
 from cpk.machine import SSHMachine, TCPMachine
-from cpk.types import Machine, Arguments
+from cpk.types import CPKMachine, Arguments
 
 
 @dataclass
 class MachineTarget:
     pattern: str
     explanation: str
-    cls: Type[Machine]
+    cls: Type[CPKMachine]
 
 
 _valid_targets = {
@@ -52,7 +52,7 @@ class CLIMachineCreateCommand(AbstractCLICommand):
         return parser
 
     @staticmethod
-    def execute(machine: Machine, parsed: argparse.Namespace) -> bool:
+    def execute(machine: CPKMachine, parsed: argparse.Namespace) -> bool:
         # validate machine's name
         if not re.match(r"^[a-zA-Z][a-zA-Z0-9\-_.]+[a-zA-Z0-9]$", parsed.name):
             cpklogger.error("Invalid name for a machine. "

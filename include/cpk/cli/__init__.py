@@ -58,7 +58,7 @@ class AbstractCLICommand(ABC):
             help="Whether to force the action",
         )
         parser.add_argument(
-            "-v",
+            "-vv",
             "--verbose",
             default=False,
             action="store_true",
