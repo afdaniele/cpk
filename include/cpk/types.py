@@ -395,9 +395,9 @@ class DockerImageName:
         registry = None
         # ---
         if len(input_parts) == 3:
-            registry, image.user, image_tag = input_parts
+            registry, image.organization, image_tag = input_parts
         elif len(input_parts) == 2:
-            image.user, image_tag = input_parts
+            image.organization, image_tag = input_parts
         elif len(input_parts) == 1:
             image_tag = input_parts[0]
         else:
@@ -423,11 +423,11 @@ class DockerImageName:
 
     def __str__(self) -> str:
         return f"""\
-Registry:\t{str(self.registry)}
-Organization:\t\t{self.organization}
-Repository:\t{self.repository}
-Tag:\t\t{self.tag}
-Arch:\t\t{self.arch}
+Registry:      {str(self.registry)}
+Organization:  {self.organization}
+Repository:    {self.repository}
+Tag:           {self.tag}
+Arch:          {self.arch}
         """
 
 
