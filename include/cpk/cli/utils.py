@@ -1,4 +1,7 @@
 import argparse
+import json
+import traceback
+from typing import Any
 
 
 def remove_argument(parser: argparse.ArgumentParser, arg: str, suppress_errors: bool = True):
@@ -45,3 +48,39 @@ def combine_args(parsed: argparse.Namespace, kwargs: dict) -> argparse.Namespace
         parsed.__setattr__(k, v)
     # ---
     return parsed
+
+
+def indent_block(s: str, indent_len: int = 4) -> str:
+    space: str = " " * indent_len
+    return space + f"\n{space}".join(s.splitlines() if s is not None else ["None"])
+
+
+def pretty_json(data: Any, indent_len: int = 0) -> str:
+    return indent_block(json.dumps(data, sort_keys=True, indent=4), indent_len=indent_len)
+
+
+def pretty_exc(exc: Exception, indent_len: int = 0) -> str:
+    return indent_block(
+        ''.join(traceback.TracebackException.from_exception(exc).format()), indent_len=indent_len)
+
+
+def as_table(data: dict, title: str, indent_len: int = 2) -> str:
+    space: str = " " * indent_len
+    w = "\033[37m"
+    x = "\033[0m"
+    width: int = 36
+    half_header: int = (width - len(title) - 2) // 2
+    # table template
+    table: str = f"""
+{'-' * half_header} {title} {'-' * (width - half_header - len(title) - 2)}
+{{content}}
+{'-' * width}
+    """
+    row: str = "{s}{w}{key}:{x} {value}"
+    # produce content
+    content: str = ""
+    for k, v in data.items():
+        content += row.format(s=space, w=w, x=x, key=k, value=v) + "\n"
+    content = content.strip("\n")
+    # ---
+    return table.format(content=content)

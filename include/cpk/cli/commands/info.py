@@ -6,22 +6,8 @@ import termcolor as tc
 from cpk import CPKProject
 from .. import AbstractCLICommand
 from ..logger import cpklogger
-from ..utils import combine_args
+from ..utils import combine_args, as_table
 from ...types import CPKMachine, Arguments
-
-w = "\033[37m"
-x = "\033[0m"
-
-PROJECT_INFO = f"""
------------ Project Info -----------
-  {w}Name:{x} {{name}}
-  {w}Distibution:{x} {{distribution}}
-  {w}Version:{x} {{version}}
-  {w}Template:{x} {{template}}
-  {w}Index:{x} {{index}}
-  {w}Path:{x} {{path}}
-  {w}URL:{x} {{url}}
-------------------------------------"""
 
 
 class CLIInfoCommand(AbstractCLICommand):
@@ -49,15 +35,15 @@ class CLIInfoCommand(AbstractCLICommand):
             else tc.colored("Dirty", "yellow")
 
         # show info about project
-        info = {
-            "name": project.name,
-            "distribution": project.layers.self.distribution or "ND",
-            "version": project.repository.version.head or "unreleased",
-            "template": project.layers.template.compact if project.layers.template else "ND",
-            "index": index,
-            "path": project.path,
-            "url": project.url or "ND",
+        info: dict = {
+            "Name": project.name,
+            "Distribution": project.layers.self.distribution or "ND",
+            "Version": project.repository.version.head or "unreleased",
+            "Template": project.layers.template.compact if project.layers.template else "ND",
+            "Index": index,
+            "Path": project.path,
+            "URL": project.url or "ND",
         }
-        print(PROJECT_INFO.format(**info))
+        print(as_table(info, "Project Info"))
         # ---
         return True

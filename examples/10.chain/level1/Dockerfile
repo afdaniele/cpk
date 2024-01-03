@@ -24,19 +24,15 @@ ARG PROJECT_NAME
 
 # define/create project paths
 ARG PROJECT_PATH="${CPK_SOURCE_DIR}/${PROJECT_NAME}"
-ARG PROJECT_LAUNCHERS_PATH="${CPK_LAUNCHERS_DIR}/${PROJECT_NAME}"
-RUN mkdir -p "${PROJECT_PATH}" "${PROJECT_LAUNCHERS_PATH}"
 WORKDIR "${PROJECT_PATH}"
 
 # keep some arguments as environment variables
 ENV CPK_PROJECT_NAME="${PROJECT_NAME}" \
     CPK_PROJECT_PATH="${PROJECT_PATH}" \
-    CPK_PROJECT_LAUNCHERS_PATH="${PROJECT_LAUNCHERS_PATH}" \
     CPK_LAUNCHER="${LAUNCHER}"
 
-# install launcher scripts
-COPY ./launchers/. "${PROJECT_LAUNCHERS_PATH}/"
-RUN cpk-install-launchers "${PROJECT_LAUNCHERS_PATH}"
+# install project code
+COPY . "${PROJECT_PATH}/"
 
 # store project metadata
 LABEL cpk.label.project.${ORGANIZATION}.${PROJECT_NAME}.code.location="${PROJECT_PATH}"

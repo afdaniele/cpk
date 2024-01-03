@@ -1,5 +1,6 @@
 # LIST YOUR APT PACKAGES HERE
 
 tini
+sudo
 python3
 python3-distutils

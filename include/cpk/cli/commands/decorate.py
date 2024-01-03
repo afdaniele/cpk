@@ -10,7 +10,7 @@ from cpk.utils.misc import configure_binfmt
 from .endpoint import CLIEndpointInfoCommand
 from .. import AbstractCLICommand
 from ..logger import cpklogger
-from ..utils import combine_args
+from ..utils import combine_args, indent_block
 from ...types import DockerImageName, CPKMachine, Arguments
 
 
@@ -82,7 +82,7 @@ class CLIDecorateCommand(AbstractCLICommand):
 
         # parse `input`
         input_image = DockerImageName.parse(parsed.input[0])
-        cpklogger.debug(f"+ Input Image:\n{str(input_image)}")
+        cpklogger.info(f"Input Image:\n{indent_block(str(input_image))}")
 
         # parse `output`
         output_image = DockerImageName.parse(parsed.output[0])
@@ -90,7 +90,7 @@ class CLIDecorateCommand(AbstractCLICommand):
         # append arch to the end of the output image
         if output_image.arch is None:
             output_image.arch = parsed.arch
-        cpklogger.debug(f"+ Output Image:\n{str(output_image)}")
+        cpklogger.info(f"Output Image:\n{indent_block(str(output_image))}")
 
         # make sure the `docker` CLI tool is installed
         # TODO: use dockertown instead

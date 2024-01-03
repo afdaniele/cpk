@@ -1,8 +1,0 @@
-schema: "1.0"
-name: "packages"
-organization: "cpk-examples"
-description: "Example of a CPK project with packages"
-maintainer:
-    name: "Andrea F. Daniele"
-    email: "andrea.francesco.daniele@gmail.com"
-version: 0.0.0

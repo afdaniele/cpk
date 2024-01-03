@@ -9,7 +9,6 @@ from typing import Optional, Iterator, List
 import cpk
 from dockertown.components.image.models import ImageHistoryLayer
 from dockertown.exceptions import NoSuchImage, DockerException
-from termcolor import colored
 
 from .endpoint import CLIEndpointInfoCommand
 from .info import CLIInfoCommand

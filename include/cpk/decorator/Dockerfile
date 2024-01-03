@@ -38,12 +38,9 @@ ENV INITSYSTEM="off" \
     CPK_VERSION="${CPK_VERSION}" \
     CPK_CODE_DIR="/code" \
     CPK_SOURCE_DIR="/code/src" \
-    CPK_LAUNCHERS_DIR="/launchers" \
     CPK_INSTALL_DIR="/cpk" \
     CPK_DECORATOR_DIR="/cpk/decorator" \
     CPK_LAUNCHER="${LAUNCHER}" \
-    # bash environment
-    BASH_ENV="${CPK_INSTALL_DIR}/environment.sh" \
     # CPK user
     CPK_USER_NAME="cpk" \
     CPK_USER_UID=2222 \

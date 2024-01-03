@@ -9,9 +9,15 @@
 LAUNCHERS_DIR=$1
 INSTALL_DIR=/usr/local/bin
 
+cpk-debug() {
+    if [ "${DEBUG:-0}" = "1" ]; then
+        echo "D: $1"
+    fi
+}
+
 # check LAUNCHERS_DIR
 if [[ ! -d ${LAUNCHERS_DIR} ]]; then
-    echo >&2 "ERROR: The path ${LAUNCHERS_DIR} does not exists or it is not a directory"
+    echo "ERROR: The path ${LAUNCHERS_DIR} does not exists or it is not a directory"
     exit 1
 fi
 
@@ -19,7 +25,6 @@ fi
 mkdir -p ${INSTALL_DIR}
 
 # install launchers
-n=0
 for filepath in "${LAUNCHERS_DIR}"/*; do
     base=$(basename "${filepath}")
     filename=${base%.*}
@@ -28,17 +33,15 @@ for filepath in "${LAUNCHERS_DIR}"/*; do
     rm -f "${destination}"
     # create a link to the launcher
     ln -s "${filepath}" "${destination}"
+    cpk-debug "           o Installing '${filepath}' -> '${destination}'"
     if [[ ! -x "${filepath}" ]]; then
         # the launcher is not executable, check if it has a shebang
         if [[ "$(head -c 2 "${filepath}")" == "#!" ]]; then
             chmod +x "${destination}"
         else
-            echo >&2 "ERROR: The launcher '${filename}' is not executable and does not have a shebang"
+            echo "ERROR: The launcher '${filename}' is not executable and does not have a shebang"
             exit 2
         fi
     fi
-    ((n++))
 done
 
-# everything should be OK
-echo "DONE: Installed ${n} launchers!"

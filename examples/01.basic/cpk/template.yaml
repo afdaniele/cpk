@@ -1,5 +1,0 @@
-schema: "1.0"
-provider: github.com
-organization: afdaniele
-name: cpk-template-basic
-version: ubuntu-jammy

@@ -3,10 +3,8 @@ from typing import Optional
 
 from dockertown import SystemInfo
 
-from cpk.cli.utils import combine_args
+from cpk.cli.utils import combine_args, as_table
 from cpk.utils.misc import human_size
-
-from cpk.utils.docker import DOCKER_INFO
 
 from cpk.cli import AbstractCLICommand, cpklogger
 from cpk.types import CPKMachine, Arguments
@@ -36,14 +34,13 @@ class CLIEndpointInfoCommand(AbstractCLICommand):
         # ---
         epoint_info: SystemInfo = docker.info()
         epoint: dict = {
-            "machine": machine.name,
-            "name": epoint_info.name,
-            "os": epoint_info.operating_system,
-            "kernel": epoint_info.kernel_version,
-            "os_type": epoint_info.os_type,
-            "arch": epoint_info.architecture,
-            "memory_total": human_size(epoint_info.mem_total),
-            "ncpus": epoint_info.n_cpu,
+            "Machine": machine.name,
+            "Hostname": epoint_info.name,
+            "Operating System": f"{epoint_info.os_type.title()} {epoint_info.operating_system}",
+            "Kernel Version": epoint_info.kernel_version,
+            "Architecture": epoint_info.architecture,
+            "Total Memory": human_size(epoint_info.mem_total),
+            "#CPUs": epoint_info.n_cpu,
         }
-        print(DOCKER_INFO.format(**epoint))
+        print(as_table(epoint, "Docker Endpoint Info"))
         return True

@@ -8,22 +8,6 @@ from ..types import CPKMachine
 DEFAULT_TCP_PORT = "2375"
 DEFAULT_MACHINE = "unix:///var/run/docker.sock"
 
-w = "\033[37m"
-x = "\033[0m"
-
-DOCKER_INFO = f"""
-------- Docker Endpoint Info --------
-  {w}Machine:{x} {{machine}}
-  {w}Hostname:{x} {{name}}
-  {w}Operating System:{x} {{os}}
-  {w}Kernel Version:{x} {{kernel}}
-  {w}OSType:{x} {{os_type}}
-  {w}Architecture:{x} {{arch}}
-  {w}Total Memory:{x} {{memory_total}}
-  {w}CPUs:{x} {{ncpus}}
-------------------------------------
-"""
-
 
 def push_image(machine: CPKMachine, image: str, progress=True) -> str:
     client = machine.get_client()
