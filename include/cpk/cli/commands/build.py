@@ -4,9 +4,11 @@ import datetime
 import json
 import sys
 import time
-from typing import Optional
+from typing import Optional, Iterator, List
 
-from docker.errors import ImageNotFound, APIError
+import cpk
+from dockertown.components.image.models import ImageHistoryLayer
+from dockertown.exceptions import NoSuchImage, DockerException
 from termcolor import colored
 
 from .endpoint import CLIEndpointInfoCommand
@@ -142,24 +144,23 @@ class CLIBuildCommand(AbstractCLICommand):
         docker = machine.get_client()
 
         # define build-args
-        buildargs = {"buildargs": {}, "labels": {}}
+        buildargs = {"build_args": {}, "labels": {}}
         # - add project build args
-        buildargs["buildargs"].update({
+        buildargs["build_args"].update({
             "ARCH": parsed.arch,
             "PROJECT_NAME": project.name,
             "BASE_REGISTRY": project.layers.base.registry,
             "BASE_ORGANIZATION": project.layers.base.organization,
             "BASE_REPOSITORY": project.layers.base.repository,
-            "BASE_TAG": project.layers.base.tag,
+            "BASE_TAG": project.layers.base.tag if parsed.base_tag is None else parsed.base_tag,
         })
         # - add project labels
         buildargs["labels"].update(project.build_labels())
         # - build-arg NCPUS
-        buildargs['buildargs']['NCPUS'] = \
-            str(parsed.ncpus) if parsed.ncpus else str(machine.get_ncpus())
+        buildargs['build_args']['NCPUS'] = str(parsed.ncpus) if parsed.ncpus else str(machine.get_ncpus())
 
         # create defaults
-        image: str = project.docker.image.name(parsed.arch).compile()
+        image: str = project.docker.image.name(arch=parsed.arch).compile()
 
         # print info about multiarch
         cpklogger.info("Building an image for {} on {}.".format(parsed.arch, machine_arch))
@@ -168,24 +169,17 @@ class CLIBuildCommand(AbstractCLICommand):
             configure_binfmt(machine_arch, parsed.arch, docker, cpklogger)
         platform = ARCH_TO_DOCKER_PLATFORM.get(parsed.arch, None)
 
-        # architecture target
-        buildargs["buildargs"]["ARCH"] = parsed.arch
-
-        # development base images
-        if parsed.base_tag is not None:
-            buildargs["buildargs"]["DISTRO"] = parsed.base_tag
-
         # custom build arguments
         for key, value in parsed.build_arg:
-            buildargs["buildargs"][key] = value
+            buildargs["build_args"][key] = value
 
         # cache
         if not parsed.no_cache:
             # check if the endpoint contains an image with the same name
             try:
-                docker.images.get(image)
+                docker.image.inspect(image)
                 is_present = True
-            except (ImageNotFound, BaseException):
+            except (NoSuchImage, BaseException):
                 is_present = False
             # ---
             if not is_present and parsed.pull:
@@ -197,7 +191,7 @@ class CLIBuildCommand(AbstractCLICommand):
                 except KeyboardInterrupt:
                     cpklogger.info("Aborting.")
                     return False
-                except (ImageNotFound, BaseException):
+                except (NoSuchImage, BaseException):
                     cpklogger.warning(
                         f'An error occurred while pulling the image "{image}", maybe the '
                         "image does not exist"
@@ -247,53 +241,50 @@ class CLIBuildCommand(AbstractCLICommand):
         buildargs.update(
             {
                 "path": project.path,
-                "rm": True,
                 "pull": parsed.pull,
-                "nocache": parsed.no_cache,
-                "tag": image,
-                "platform": platform
+                "cache": not parsed.no_cache,
+                "tags": image,
+                "platforms": [platform]
             }
         )
         cpklogger.debug("Build arguments:\n%s\n" % json.dumps(buildargs, sort_keys=True, indent=4))
 
         # build image
-        buildlog = []
+        build_log = []
         print("=" * SEPARATORS_LENGTH)
         try:
-            for line in docker.api.build(**buildargs, decode=True):
-                line = _build_line(line)
+            lines: Iterator[str] = docker.buildx.build(
+                **buildargs,
+                progress="plain",
+                stream_logs=True
+            )
+
+            for line in lines:
                 if not line:
                     continue
                 try:
                     sys.stdout.write(line)
-                    buildlog.append(line)
+                    build_log.append(line)
                 except UnicodeEncodeError:
                     pass
-        except APIError as e:
+        except DockerException as e:
             cpklogger.error(f"An error occurred while building the project image:\n{str(e)}")
             return False
         except CPKProjectBuildException:
             cpklogger.error(f"An error occurred while building the project image.")
             return False
-        dimage = docker.images.get(image)
+        dimage = docker.image.inspect(image)
 
         # tag release images
         if project.is_release():
             rimage: str = project.docker.image.release_name(parsed.arch).compile()
             dimage.tag(*rimage.split(":"))
             msg = f"Successfully tagged {rimage}"
-            buildlog.append(msg)
+            build_log.append(msg)
             print(msg)
 
-        # TODO: fix this
-        # # build code docs
-        # if parsed.docs:
-        #     docs_args = ["--quiet"] * int(not parsed.verbose)
-        #     # build docs
-        #     cpklogger.info("Building documentation...")
-
         # get image history
-        historylog = [(layer["Id"], layer["Size"]) for layer in dimage.history()]
+        image_history: List[ImageHistoryLayer] = docker.image.history(image)
 
         # round up extra info
         extra_info = []
@@ -306,21 +297,17 @@ class CLIBuildCommand(AbstractCLICommand):
             extra_info.append(EXTRA_INFO_SEPARATOR)
         # - timing
         extra_info.append("Time: {}".format(human_time(time.time() - stime)))
-        # - documentation
-        extra_info.append(
-            "Documentation: {}".format(
-                colored("Built", "green") if parsed.docs else colored("Skipped", "yellow")
-            )
-        )
         # compile extra info
         extra_info = "\n".join(extra_info)
+
         # run docker image analysis
         print("=" * SEPARATORS_LENGTH + "\n")
         cpklogger.info("Analyzing the image...")
-        print()
-        _, _, final_image_size = ImageAnalyzer.process(
-            buildlog, historylog, extra_info=extra_info
-        )
+        ImageAnalyzer.process(image_history, build_log, extra_info=extra_info)
+        footer: str = f"cpk - v{cpk.__version__}"
+        # print footer
+        print(" " * (SEPARATORS_LENGTH - len(footer)) + footer)
+
         # perform push (if needed)
         if parsed.push:
             # call command `push`
@@ -338,20 +325,3 @@ class CLIBuildCommand(AbstractCLICommand):
                 CLICleanCommand.execute(machine, copy.deepcopy(parsed))
             except BaseException:
                 cpklogger.warn("We had some issues cleaning up the image. Just a heads up!")
-
-
-def _build_line(line):
-    if "error" in line and "errorDetail" in line:
-        msg = line["errorDetail"]["message"]
-        cpklogger.error(msg)
-        raise CPKProjectBuildException(msg)
-    if "stream" not in line:
-        return None
-    line = line["stream"].strip("\n")
-    if not line:
-        return None
-    # this allows apps inside docker build to clear lines
-    if not line.endswith("\r"):
-        line += "\n"
-    # ---
-    return line

@@ -1,7 +1,7 @@
 import argparse
 from typing import Optional, List
 
-from docker.errors import APIError
+import dockertown.exceptions
 
 from .endpoint import CLIEndpointInfoCommand
 from .info import CLIInfoCommand
@@ -72,7 +72,7 @@ class CLIPullCommand(AbstractCLICommand):
             # pull image
             try:
                 machine.pull_image(image, progress=True)
-            except APIError as e:
+            except dockertown.exceptions.DockerException as e:
                 cpklogger.error(f"An error occurred while pulling the project image:\n{str(e)}")
                 return False
             except CPKProjectPullException:

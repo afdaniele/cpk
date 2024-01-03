@@ -6,9 +6,10 @@ import time
 from shutil import which
 from typing import Optional, Union
 
-import docker
+import dockertown.exceptions
+from dockertown import DockerClient
+
 from cpk.exceptions import CPKException
-from docker import DockerClient
 
 from cpk.types import CPKMachine
 
@@ -30,7 +31,7 @@ class FromEnvMachine(CPKMachine):
         return True
 
     def get_client(self) -> DockerClient:
-        return docker.from_env()
+        return DockerClient()
 
 
 class TCPMachine(CPKMachine):
@@ -50,8 +51,8 @@ class TCPMachine(CPKMachine):
 
     def get_client(self) -> DockerClient:
         try:
-            return docker.DockerClient(base_url=self.base_url)
-        except docker.errors.DockerException as e:
+            return DockerClient(host=self.base_url)
+        except dockertown.exceptions.DockerException as e:
             raise CPKException(str(e))
 
 
@@ -103,7 +104,7 @@ class SSHMachine(CPKMachine):
         return f"ssh://{self.uri}:{self.port}"
 
     def get_client(self) -> DockerClient:
-        return docker.DockerClient(base_url=self.base_url, use_ssh_client=True)
+        return DockerClient(host=self.base_url)
 
     def save(self, logger: Optional[logging.Logger] = None):
         from cpk import cpkconfig

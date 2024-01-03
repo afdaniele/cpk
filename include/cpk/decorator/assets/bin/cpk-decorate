@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+
+set -ex
+
+# make directories
+mkdir -p "${CPK_CODE_DIR}" "${CPK_SOURCE_DIR}" "${CPK_LAUNCHERS_DIR}" "${CPK_INSTALL_DIR}"
+
+# copy binaries
+cp ${CPK_DECORATOR_DIR}/assets/bin/* /usr/local/bin/
+
+# copy entrypoint and environment
+cp ${CPK_DECORATOR_DIR}/assets/entrypoint.sh ${CPK_INSTALL_DIR}/entrypoint.sh
+cp ${CPK_DECORATOR_DIR}/assets/environment.sh ${CPK_INSTALL_DIR}/environment.sh
+
+# install dependencies (APT)
+cpk-apt-install "${CPK_DECORATOR_DIR}/dependencies-apt.txt"
+
+# install pip
+python3 "${CPK_DECORATOR_DIR}/assets/get-pip.py"
+
+# install dependencies (PIP3)
+cpk-pip3-install "${CPK_DECORATOR_DIR}/dependencies-py3.txt"
+
+# define healthcheck file
+echo ND > /health
+chmod 777 /health
+
+# copy the source code
+PROJECT_PATH="${CPK_SOURCE_DIR}/cpk"
+PROJECT_LAUNCHERS_PATH="${CPK_LAUNCHERS_DIR}/cpk"
+mkdir -p "${PROJECT_PATH}" "${PROJECT_LAUNCHERS_PATH}"
+cp -R ${CPK_DECORATOR_DIR}/packages "${PROJECT_PATH}/packages"
+
+# install launcher scripts
+cp -R ${CPK_DECORATOR_DIR}/launchers/* "${PROJECT_LAUNCHERS_PATH}/"
+cpk-install-launchers "${PROJECT_LAUNCHERS_PATH}"
+
+# set CPK environment
+echo "source ${CPK_INSTALL_DIR}/environment.sh" >> /etc/bash.bashrc
+
+# TODO: move this to entrypoint.d
+echo "\
+export CPK_CODE_DIR=\"${CPK_CODE_DIR}\" \n\
+export CPK_SOURCE_DIR=\"${CPK_SOURCE_DIR}\" \n\
+export CPK_LAUNCHERS_DIR=\"${CPK_LAUNCHERS_DIR}\" \n\
+export CPK_INSTALL_DIR=\"${CPK_INSTALL_DIR}\" \
+" > "${CPK_INSTALL_DIR}/constants.sh"
+
+# make `cpk` project
+mkdir -p "${CPK_SOURCE_DIR}/cpk"
+
+# copy cpk metadir
+mv ${CPK_DECORATOR_DIR}/cpk "${CPK_SOURCE_DIR}/cpk/cpk"
+
+# copy packages
+mv ${CPK_DECORATOR_DIR}/packages "${CPK_SOURCE_DIR}/cpk/packages"
+
+# copy assets
+mv ${CPK_DECORATOR_DIR}/assets "${CPK_SOURCE_DIR}/cpk/assets"
+
+# create non-root user
+addgroup --gid ${CPK_GROUP_GID} "${CPK_GROUP_NAME}" && \
+useradd \
+    --create-home \
+    --home-dir "${CPK_USER_HOME}" \
+    --comment "CPK User" \
+    --shell "/bin/bash" \
+    --password "paf4ePnqFtlAE" \
+    --uid ${CPK_USER_UID} \
+    --gid ${CPK_GROUP_GID} \
+    "${CPK_USER_NAME}"

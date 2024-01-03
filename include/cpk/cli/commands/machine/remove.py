@@ -39,6 +39,7 @@ class CLIMachineRemoveCommand(AbstractCLICommand):
         cpklogger.info("The following machine will be deleted.")
         print(machine)
         # ask for confirmation
+        # TODO: use questionarie instead
         granted = ask_confirmation(
             cpklogger,
             message=f"The machine '{parsed.name}' will be deleted. This cannot be undone.",

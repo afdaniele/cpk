@@ -11,7 +11,6 @@ from typing import List, Dict, Optional, Union, Type, Iterator, Any
 
 import jsonschema
 from cpk.utils.misc import assert_canonical_arch
-from docker import DockerClient
 
 import cpk
 
@@ -24,7 +23,7 @@ from .exceptions import \
     CPKTemplateSchemaNotSupported, CPKException
 from .utils.semver import SemanticVersion
 
-from dockertown import Image
+from dockertown import Image, DockerClient
 
 Arguments = List[str]
 CPKProjectGenericLayer = dict
@@ -522,63 +521,6 @@ class CPKFileMapping:
         )
 
 
-@dataclasses.dataclass
-class CPKTemplateInfo:
-    name: str
-    version: str
-    mappings: List[CPKFileMapping]
-    url: Optional[str]
-    must_have: Dict[str, List[str]] = dataclasses.field(
-        default_factory=lambda: {"files": [], "directories": []})
-
-    @staticmethod
-    def from_template_dict(data: dict) -> 'CPKTemplateInfo':
-        # make sure the `schema` field is there
-        if 'schema' not in data:
-            raise InvalidCPKTemplate("Missing field: `schema`")
-        # make sure we support that schema
-        try:
-            schema = get_template_schema(data["schema"])
-        except FileNotFoundError:
-            raise CPKTemplateSchemaNotSupported(data["schema"])
-        # validate data against its declared schema
-        try:
-            jsonschema.validate(data, schema=schema)
-        except jsonschema.ValidationError as e:
-            raise InvalidCPKTemplate(str(e))
-        # data is valid
-        info = CPKTemplateInfo(
-            name=data["name"],
-            version=data["version"],
-            mappings=list(map(lambda m: CPKFileMapping.from_dict(m), data.get('mappings', []))),
-            url=data.get("url", None)
-        )
-        if "must_have" in data:
-            info.must_have.update(data["must_have"])
-        # ---
-        return info
-
-    @staticmethod
-    def from_project_path(path: str) -> 'CPKTemplateInfo':
-        metafile = os.path.join(path, "template.cpk")
-        # check if the file 'template.cpk' is missing
-        if not os.path.exists(metafile):
-            raise NotACPKProjectException(path)
-        # load 'template.cpk'
-        with open(metafile, "rt") as fin:
-            try:
-                data = json.load(fin)
-            except json.JSONDecodeError as e:
-                raise InvalidCPKTemplateFile(path, f"File `{metafile}` must contain a valid JSON. "
-                                                   f"DecoderError: {str(e)}")
-        # make sure the `schema` field is there
-        if 'schema' not in data:
-            raise InvalidCPKTemplateFile(path, "Missing field: `schema`")
-        # ---
-        return CPKTemplateInfo.from_template_dict(data)
-
-
-# TODO: rename to CPKMachine
 class CPKMachine(ABC):
     type: str
 
@@ -651,15 +593,12 @@ class CPKMachine(ABC):
             return self._arch
         # get client
         client = self.get_client()
-        try:
-            # fetch architecture from client
-            endpoint_arch = client.info()["Architecture"]
-            if endpoint_arch not in CANONICAL_ARCH:
-                raise CPKException(f"Unsupported architecture '{endpoint_arch}'.")
-            self._arch = endpoint_arch
-        finally:
-            client.close()
-        return CANONICAL_ARCH[endpoint_arch]
+        # fetch architecture from client
+        endpoint_arch = client.info().architecture
+        if endpoint_arch not in CANONICAL_ARCH:
+            raise CPKException(f"Unsupported architecture '{endpoint_arch}'.")
+        self._arch = CANONICAL_ARCH[endpoint_arch]
+        return self._arch
 
     def get_ncpus(self, ) -> Optional[int]:
         # noinspection PyBroadException
@@ -674,43 +613,13 @@ class CPKMachine(ABC):
         if username is not None and password is not None:
             self.get_client().login(username=username, password=password)
 
-    def pull_image(self, image, progress=True):
-        client = self.get_client()
-        layers = set()
-        pulled = set()
-        pbar = ProgressBar() if progress else None
-        for line in client.api.pull(*image.split(":"), stream=True, decode=True):
-            if "id" not in line or "status" not in line:
-                continue
-            layer_id = line["id"]
-            layers.add(layer_id)
-            if line["status"] in ["Already exists", "Pull complete"]:
-                pulled.add(layer_id)
-            # update progress bar
-            if progress:
-                percentage = max(0.0, min(1.0, len(pulled) / max(1.0, len(layers)))) * 100.0
-                pbar.update(percentage)
-        if progress:
-            pbar.done()
+    def pull_image(self, image: str, progress: bool = True):
+        docker: DockerClient = self.get_client()
+        docker.image.pull(image, quiet=not progress)
 
-    def push_image(self, image, progress=True, **kwargs):
-        client = self.get_client()
-        layers = set()
-        pushed = set()
-        pbar = ProgressBar() if progress else None
-        for line in client.api.push(*image.split(":"), stream=True, decode=True, **kwargs):
-            if "id" not in line or "status" not in line:
-                continue
-            layer_id = line["id"]
-            layers.add(layer_id)
-            if line["status"] in ["Layer already exists", "Pushed"]:
-                pushed.add(layer_id)
-            # update progress bar
-            if progress:
-                percentage = max(0.0, min(1.0, len(pushed) / max(1.0, len(layers)))) * 100.0
-                pbar.update(percentage)
-        if progress:
-            pbar.done()
+    def push_image(self, image: str, progress: bool = True):
+        docker: DockerClient = self.get_client()
+        docker.image.push(image, quiet=not progress)
 
     def __str__(self):
         return """

@@ -93,6 +93,7 @@ class CLIDecorateCommand(AbstractCLICommand):
         cpklogger.debug(f"+ Output Image:\n{str(output_image)}")
 
         # make sure the `docker` CLI tool is installed
+        # TODO: use dockertown instead
         docker_cli = which('docker')
         if docker_cli is None:
             cpklogger.error("The Docker CLI must be installed for this command to work.")
@@ -128,6 +129,20 @@ class CLIDecorateCommand(AbstractCLICommand):
 
         # get machine
         docker_opts = ["-H", machine.base_url] if machine.base_url else []
+
+        # TODO: labels taken from the Dockerfile, pass them as arguments
+        # LABEL \
+        #         cpk.label.current = "${ORGANIZATION}.${NAME}" \
+        #         cpk.label.base = "${ORGANIZATION}.${NAME}" \
+        #         cpk.label.project.${ORGANIZATION}.${NAME}.description = "${CPK_BASE_DESCRIPTION}" \
+        #         cpk.label.project.${ORGANIZATION}.${NAME}.code.location = "${PROJECT_PATH}" \
+        #         cpk.label.project.${ORGANIZATION}.${NAME}.base.registry = "${BASE_REGISTRY}" \
+        #         cpk.label.project.${ORGANIZATION}.${NAME}.base.organization = "${BASE_ORGANIZATION}" \
+        #         cpk.label.project.${ORGANIZATION}.${NAME}.base.project = "${BASE_REPOSITORY}" \
+        #         cpk.label.project.${ORGANIZATION}.${NAME}.base.tag = "${BASE_TAG}" \
+        #         cpk.label.project.${ORGANIZATION}.${NAME}.maintainer = "${MAINTAINER}" \
+        #         cpk.label.cpk.version = "${CPK_VERSION}" \
+        #         cpk.label.architecture = "${ARCH}"
 
         # compile command
         cmd = ["docker"] + docker_opts + [

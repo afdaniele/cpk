@@ -5,9 +5,8 @@ import subprocess
 from pathlib import Path
 from typing import Union, Optional
 
-import docker
-import yaml
-from docker.errors import ContainerError, ImageNotFound, APIError
+from dockertown import DockerClient
+import dockertown.exceptions
 
 from cpk.constants import CANONICAL_ARCH, CONTAINER_LABEL_DOMAIN, BUILD_COMPATIBILITY_MAP
 
@@ -51,31 +50,20 @@ def sanitize_hostname(hostname: str) -> str:
         return f"{hostname}.local" if "." not in hostname else hostname
 
 
-def parse_configurations(config_file: str) -> dict:
-    with open(config_file, "rt") as fin:
-        # TODO: use safe_load instead
-        configurations_content = yaml.load(fin, Loader=yaml.SafeLoader)
-    if "version" not in configurations_content:
-        raise ValueError("The configurations file must have a root key 'version'.")
-    # TODO: handle configuration schemas properly (i.e., using JSON/XML schemas)
-    if configurations_content["version"] == "1.0":
-        return configurations_content["configurations"]
-
-
-def configure_binfmt(machine_arch: str, arch: str, epoint: docker.DockerClient, logger):
+def configure_binfmt(machine_arch: str, arch: str, epoint: DockerClient, logger):
     machine_arch = CANONICAL_ARCH[machine_arch]
     compatible_archs = BUILD_COMPATIBILITY_MAP[machine_arch]
     if arch not in compatible_archs:
         logger.info("Configuring machine for multiarch...")
         try:
-            epoint.containers.run(
+            epoint.container.run(
                 "multiarch/qemu-user-static:register",
                 remove=True,
                 privileged=True,
                 command="--reset",
             )
             logger.info("Multiarch Enabled!")
-        except (ContainerError, ImageNotFound, APIError) as e:
+        except dockertown.exceptions.DockerException as e:
             msg = "Multiarch cannot be enabled on the target machine. " \
                   "This might create issues."
             logger.warning(msg)
@@ -165,6 +153,7 @@ def configure_ssh_for_cpk(logger: Optional[logging.Logger] = None):
             logger.debug(f"SSH configuration file '{ssh_config_fpath}' configured for CPK.")
 
 
+# TODO: replace this with questionary
 def ask_confirmation(logger, message, default="y", question="Do you confirm?", choices=None):
     binary_question = False
     if choices is None:

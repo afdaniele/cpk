@@ -17,7 +17,7 @@ from .schemas import get_layer_schema, have_schemas_for_layer
 from .types import GitRepository, CPKProjectLayersContainer, Maintainer, CPKProjectDocker, \
     CPKProjectStructureLayer
 from .utils.git import get_repo_info
-from .utils.misc import parse_configurations, cpk_label
+from .utils.misc import cpk_label
 from .utils.semver import SemanticVersion
 
 
@@ -149,20 +149,6 @@ class CPKProject:
     def is_detached(self) -> bool:
         return self._repo.detached
 
-    def configurations(self) -> dict:
-        configurations = {}
-        configurations_file = os.path.join(self._path, "configurations.yaml")
-        if os.path.isfile(configurations_file):
-            configurations = parse_configurations(configurations_file)
-        # ---
-        return configurations
-
-    def configuration(self, name: str) -> dict:
-        configurations = self.configurations()
-        if name not in configurations:
-            raise KeyError(f"Configuration with name '{name}' not found.")
-        return configurations[name]
-
     def label(self, key: Union[List[str], str]) -> str:
         if isinstance(key, (list, tuple)):
             key = ".".join(key)
@@ -213,7 +199,6 @@ class CPKProject:
             self.label("template.version"): self.layers.template.version,
             self.label("template.url"): self.layers.template.url or "ND",
             **self._launchers_labels(),
-            **self._configurations_labels()
         }
 
     def launchers(self) -> List[str]:
@@ -284,14 +269,6 @@ class CPKProject:
     def _launchers_labels(self) -> Dict[str, str]:
         return {self.label("code.launchers"): ",".join(self.launchers())}
 
-    def _configurations_labels(self) -> Dict[str, str]:
-        labels = {}
-        # add configuration labels
-        for cfg_name, cfg_data in self.configurations().items():
-            labels[self.label(f"configuration.{cfg_name}")] = json.dumps(cfg_data)
-        # ---
-        return labels
-
     @staticmethod
     def _read_layers(path: str) -> Dict[str, dict]:
         layers: Dict[str, dict] = {}
@@ -346,15 +323,11 @@ class CPKProject:
 @dataclasses.dataclass
 class CPKProjectFeatures:
     launchers: bool
-    setup: bool
-    configurations: bool
     assets: bool
 
     @staticmethod
     def from_project(project: CPKProject) -> 'CPKProjectFeatures':
         return CPKProjectFeatures(
             launchers=os.path.isdir(os.path.join(project.path, 'launchers')),
-            setup=os.path.isfile(os.path.join(project.path, 'setup.sh')),
-            configurations=os.path.isfile(os.path.join(project.path, 'configurations.yaml')),
             assets=os.path.isdir(os.path.join(project.path, 'assets'))
         )

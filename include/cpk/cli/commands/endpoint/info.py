@@ -1,6 +1,8 @@
 import argparse
 from typing import Optional
 
+from dockertown import SystemInfo
+
 from cpk.cli.utils import combine_args
 from cpk.utils.misc import human_size
 
@@ -32,10 +34,16 @@ class CLIEndpointInfoCommand(AbstractCLICommand):
         if not parsed.quiet:
             cpklogger.info("Retrieving info about Docker endpoint...")
         # ---
-        epoint = docker.info()
-        epoint['machine'] = machine.name
-        if "ServerErrors" in epoint:
-            cpklogger.error("\n".join(epoint["ServerErrors"]))
-            return False
-        epoint["MemTotal"] = human_size(epoint["MemTotal"])
+        epoint_info: SystemInfo = docker.info()
+        epoint: dict = {
+            "machine": machine.name,
+            "name": epoint_info.name,
+            "os": epoint_info.operating_system,
+            "kernel": epoint_info.kernel_version,
+            "os_type": epoint_info.os_type,
+            "arch": epoint_info.architecture,
+            "memory_total": human_size(epoint_info.mem_total),
+            "ncpus": epoint_info.n_cpu,
+        }
         print(DOCKER_INFO.format(**epoint))
+        return True

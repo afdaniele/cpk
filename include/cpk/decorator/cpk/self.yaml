@@ -1,0 +1,8 @@
+schema: "1.0"
+name: "cpk-decorator"
+organization: "cpk"
+description: "Decorator project for CPK"
+maintainer:
+    name: "Andrea F. Daniele"
+    email: "andrea.francesco.daniele@gmail.com"
+version: 2.0.0

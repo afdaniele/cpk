@@ -16,28 +16,29 @@ skel_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "
 surgery = {
     "name": {
         "title": "Project Name",
-        "targets": ["project.cpk"],
+        "targets": ["cpk/self.yaml"],
         "pattern": r"^[a-zA-Z0-9-_]+$",
         "pattern_human": "an alphanumeric string [a-zA-Z0-9-_]"
     },
     "description": {
         "title": "Project Description",
-        "targets": ["project.cpk"],
+        "targets": ["cpk/self.yaml"],
         "pattern": r"^.+$",
         "pattern_human": "a non-empty free text"
     },
     "organization": {
         "title": "Owner Username",
-        "targets": ["project.cpk"],
+        "targets": ["cpk/self.yaml"],
         "pattern": r"^[a-zA-Z0-9-_]+$",
         "pattern_human": "an alphanumeric string [a-zA-Z0-9-_]"
     },
-    "maintainer": {
-        "title": "Owner Full Name",
-        "targets": ["project.cpk"],
-        "pattern": r"^.+$",
-        "pattern_human": "a non-empty string, suggested format is 'First Last <EMail Address>'"
-    },
+    # TODO: break this into name and email
+    # "maintainer": {
+    #     "title": "Owner Full Name",
+    #     "targets": ["cpk/self.yaml"],
+    #     "pattern": r"^.+$",
+    #     "pattern_human": "a non-empty string, suggested format is 'First Last <EMail Address>'"
+    # },
 }
 
 

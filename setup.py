@@ -36,14 +36,8 @@ def get_decorator_files() -> List[str]:
     return _get_all_files(cpk_dir, "decorator")
 
 
-def get_skeleton_files() -> List[str]:
-    this_file = os.path.abspath(__file__)
-    cpk_dir = os.path.join(os.path.dirname(this_file), "include", "cpk")
-    return _get_all_files(cpk_dir, "skeleton")
-
-
-if sys.version_info < (3, 6):
-    msg = 'cpk works with Python 3.6 and later.\nDetected %s.' % str(sys.version)
+if sys.version_info < (3, 10):
+    msg = 'cpk works with Python 3.10 and later.\nDetected %s.' % str(sys.version)
     sys.exit(msg)
 
 lib_version = get_version(filename='include/cpk/__init__.py')
@@ -66,7 +60,6 @@ setup(
         "cpk": [
             "schemas/*/*.json",
             *get_decorator_files(),
-            *get_skeleton_files()
         ],
     },
     version=lib_version,
@@ -74,22 +67,21 @@ setup(
     description='Toolkit that standardize the way code in a project is structured and packaged '
                 'for maximum portability, readability and maintainability.',
     author='Andrea F. Daniele',
-    author_email='afdaniele@ttic.edu',
+    author_email='andrea.francesco.daniele@gmail.com',
     url='https://github.com/afdaniele/cpk',
     download_url='https://github.com/afdaniele/cpk/tarball/{}'.format(lib_version),
     zip_safe=False,
     include_package_data=True,
     keywords=['code', 'container', 'containerization', 'package', 'toolkit', 'docker'],
     install_requires=[
-        'docker>=4.4.0',
         'requests',
         'jsonschema',
         'termcolor',
         'pyyaml',
         'sshconf',
         'cryptography',
-        'x-docker>=0.0.2',
-        *(['dataclasses'] if sys.version_info < (3, 7) else [])
+        'questionary',
+        'dockertown==0.2.3'
     ],
     scripts=[
         'include/cpk/bin/cpk'
@@ -100,7 +92,7 @@ setup(
         'Topic :: Software Development :: Build Tools',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ],
 )

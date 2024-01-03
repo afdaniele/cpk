@@ -1,14 +1,10 @@
 # parameters
 ARG ARCH
-ARG MAINTAINER
 
-ARG BASE_REGISTRY="NOT_SET"
-ARG BASE_ORGANIZATION="NOT_SET"
-ARG BASE_REPOSITORY="NOT_SET"
-ARG BASE_TAG="NOT_SET"
-
-ARG ORGANIZATION="NOT_SET"
-ARG NAME="NOT_SET"
+ARG BASE_REGISTRY
+ARG BASE_ORGANIZATION
+ARG BASE_REPOSITORY
+ARG BASE_TAG
 
 ARG CPK_VERSION="NOT_SET"
 
@@ -18,19 +14,14 @@ FROM ${BASE_REGISTRY}/${BASE_ORGANIZATION}/${BASE_REPOSITORY}:${BASE_TAG}
 
 # recall all arguments
 ARG ARCH
-ARG MAINTAINER
 
 ARG BASE_REGISTRY
 ARG BASE_ORGANIZATION
 ARG BASE_REPOSITORY
 ARG BASE_TAG
 
-ARG ORGANIZATION
-ARG NAME
-
 ARG CPK_VERSION
-
-ARG LAUNCHER=default
+ARG LAUNCHER=bash
 
 # copy QEMU
 COPY ./assets/qemu/${ARCH}/ /usr/bin/
@@ -43,128 +34,33 @@ ENV INITSYSTEM="off" \
     LC_ALL="C.UTF-8" \
     PYTHONIOENCODING="UTF-8" \
     DEBIAN_FRONTEND="noninteractive" \
-    CATKIN_VERSION="0.8.10" \
     # cpk environment
+    CPK_VERSION="${CPK_VERSION}" \
     CPK_CODE_DIR="/code" \
     CPK_SOURCE_DIR="/code/src" \
     CPK_LAUNCHERS_DIR="/launchers" \
-    CPK_INSTALL_DIR="/cpk"
+    CPK_INSTALL_DIR="/cpk" \
+    CPK_DECORATOR_DIR="/cpk/decorator" \
+    CPK_LAUNCHER="${LAUNCHER}" \
+    # bash environment
+    BASH_ENV="${CPK_INSTALL_DIR}/environment.sh" \
+    # CPK user
+    CPK_USER_NAME="cpk" \
+    CPK_USER_UID=2222 \
+    CPK_GROUP_NAME="cpk" \
+    CPK_GROUP_GID=2222 \
+    CPK_USER_HOME="/home/cpk"
 
-# define/create project paths
-ARG PROJECT_PATH="${CPK_SOURCE_DIR}/cpk"
-ARG PROJECT_LAUNCHERS_PATH="${CPK_LAUNCHERS_DIR}/cpk"
-RUN mkdir -p ${CPK_INSTALL_DIR}/bin && \
-    mkdir -p "${PROJECT_PATH}" && \
-    mkdir -p "${PROJECT_LAUNCHERS_PATH}"
-WORKDIR "${PROJECT_PATH}"
+# copy everything
+COPY . ${CPK_DECORATOR_DIR}/
 
-# copy binaries
-COPY ./assets/bin/. ${CPK_INSTALL_DIR}/bin/
-ENV PATH="${PATH}:${CPK_INSTALL_DIR}/bin"
-
-# copy entrypoint and environment
-COPY ./assets/entrypoint.sh ${CPK_INSTALL_DIR}/entrypoint.sh
-COPY ./assets/environment.sh ${CPK_INSTALL_DIR}/environment.sh
-
-# keep some arguments as environment variables
-ENV \
-    CPK_BASE_NAME="${NAME}" \
-    CPK_BASE_ORGANIZATION="${ORGANIZATION}" \
-    CPK_BASE_DESCRIPTION="cpk base image" \
-    CPK_BASE_MAINTAINER="${MAINTAINER}" \
-    CPK_BASE_PATH="${PROJECT_PATH}" \
-    CPK_BASE_LAUNCHERS_PATH="${PROJECT_LAUNCHERS_PATH}" \
-    CPK_LAUNCHER="${LAUNCHER}"
-
-# install dependencies (APT)
-COPY ./dependencies-apt.txt "${PROJECT_PATH}/"
-RUN cpk-apt-install "${PROJECT_PATH}/dependencies-apt.txt"
-
-# install dependencies (PIP3)
-COPY ./dependencies-py3.txt "${PROJECT_PATH}/"
-RUN cpk-pip3-install "${PROJECT_PATH}/dependencies-py3.txt"
-
-# install catkin engine
-RUN cd /tmp/ && \
-    wget --no-check-certificate \
-        https://github.com/ros/catkin/archive/refs/tags/${CATKIN_VERSION}.zip && \
-    unzip ${CATKIN_VERSION}.zip -d ${PROJECT_PATH}/packages/ && \
-    rm ${CATKIN_VERSION}.zip
-
-# install gcc-multilib
-RUN set -eux; \
-	\
-	arch="$(uname --m)"; \
-	case "$arch" in \
-        # amd64
-		x86_64) package_name='gcc-multilib' ;; \
-        # arm32v6
-		armhf) package_name='gcc-multilib' ;; \
-        # arm32v7
-		armv7) package_name='gcc-multilib' ;; \
-		armv7l) package_name='gcc-multilib' ;; \
-        # arm64v8
-		aarch64) package_name='gcc-multilib-arm-linux-gnueabi' ;; \
-		*) echo >&2 "error: unsupported architecture ($arch)"; exit 1 ;;\
-	esac; \
-	\
-	apt-get update; \
-    apt-get install -y --no-install-recommends $package_name; \
-    rm -rf /var/lib/apt/lists/*
+# decorate
+RUN ${CPK_DECORATOR_DIR}/assets/bin/cpk-decorate
 
 # define healthcheck
-RUN echo ND > /health
-RUN chmod 777 /health
 HEALTHCHECK \
-    --interval=5s \
+    --interval=10s \
     CMD cat /health && grep -q ^healthy$ /health
 
-# copy the source code
-COPY ./packages "${PROJECT_PATH}/packages"
-
-# install launcher scripts
-COPY ./launchers/. "${PROJECT_LAUNCHERS_PATH}/"
-COPY ./launchers/default.sh "${PROJECT_LAUNCHERS_PATH}/"
-RUN cpk-install-launchers "${PROJECT_LAUNCHERS_PATH}"
-
-# copy setup file
-COPY ./setup.sh ${PROJECT_PATH}/
-
-# copy project file
-COPY ./project.cpk ${PROJECT_PATH}/
-
-# set CPK environment
-# - for interactive bash sessions
-RUN echo "source ${CPK_INSTALL_DIR}/environment.sh" >> ~/.bashrc
-# - for non-interactive bash sessions
-ENV BASH_ENV ${CPK_INSTALL_DIR}/environment.sh
-
-# constants
-RUN echo "\
-export CPK_CODE_DIR=\"${CPK_CODE_DIR}\" \n\
-export CPK_SOURCE_DIR=\"${CPK_SOURCE_DIR}\" \n\
-export CPK_LAUNCHERS_DIR=\"${CPK_LAUNCHERS_DIR}\" \n\
-export CPK_INSTALL_DIR=\"${CPK_INSTALL_DIR}\" \
-" > "${CPK_INSTALL_DIR}/constants.sh"
-
-# configure entrypoint
-ENTRYPOINT ["/cpk/entrypoint.sh"]
-
-# define default command
-CMD ["bash", "-c", "launcher-${CPK_LAUNCHER}"]
-
-# store module metadata
-LABEL \
-    cpk.label.current="${ORGANIZATION}.${NAME}" \
-    cpk.label.base="${ORGANIZATION}.${NAME}" \
-    cpk.label.project.${ORGANIZATION}.${NAME}.description="${CPK_BASE_DESCRIPTION}" \
-    cpk.label.project.${ORGANIZATION}.${NAME}.code.location="${PROJECT_PATH}" \
-    cpk.label.project.${ORGANIZATION}.${NAME}.base.registry="${BASE_REGISTRY}" \
-    cpk.label.project.${ORGANIZATION}.${NAME}.base.organization="${BASE_ORGANIZATION}" \
-    cpk.label.project.${ORGANIZATION}.${NAME}.base.project="${BASE_REPOSITORY}" \
-    cpk.label.project.${ORGANIZATION}.${NAME}.base.tag="${BASE_TAG}" \
-    cpk.label.project.${ORGANIZATION}.${NAME}.maintainer="${MAINTAINER}" \
-    cpk.label.cpk.version="${CPK_VERSION}" \
-    cpk.label.architecture="${ARCH}"
-
-ONBUILD ARG CPK_IN_DOCKER_BUILD=1
+# define entrypoint
+ENTRYPOINT ["tini", "--", "/cpk/entrypoint.sh", "--"]

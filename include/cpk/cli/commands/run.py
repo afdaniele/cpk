@@ -6,9 +6,10 @@ import subprocess
 from pathlib import Path
 from typing import Optional, Dict
 
+import dockertown.exceptions
+
 import cpk.cli
 from cpk.machine import SSHMachine
-from docker.errors import ImageNotFound
 
 from xdocker import get_configuration
 
@@ -97,6 +98,7 @@ class CLIRunCommand(AbstractCLICommand):
             help="Launcher to invoke inside the container",
         )
         parser.add_argument(
+            # TODO: pass this to dockertown
             "--runtime",
             default="docker",
             type=str,
@@ -178,25 +180,6 @@ class CLIRunCommand(AbstractCLICommand):
         # create defaults
         image: str = project.docker.image.name(parsed.arch).compile()
         parsed.name = parsed.name or f"cpk-run-{project.name.replace('/', '-')}"
-
-        # subcommand "attach"
-        # TODO: this will not work with CPKMachine created from env, the host will be None
-        # if parsed.subcommand == "attach":
-        #     cpklogger.info(f"Attempting to attach to container '{parsed.name}'...")
-        #     # run
-        #     _run_cmd(
-        #         [
-        #             "docker",
-        #             "-H=%s" % machine.host,
-        #             "exec",
-        #             "-it",
-        #             parsed.name,
-        #             "/entrypoint.sh",
-        #             "bash",
-        #         ],
-        #         suppress_errors=True,
-        #     )
-        #     return True
 
         # environment
         environment = []
@@ -365,7 +348,7 @@ class CLIRunCommand(AbstractCLICommand):
             try:
                 docker.images.get(image)
                 present = True
-            except ImageNotFound:
+            except dockertown.exceptions.NoSuchImage:
                 pass
             if present and not parsed.force_pull:
                 cpklogger.info("Found an image with the same name. Use --force-pull to pull again")

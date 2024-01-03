@@ -14,13 +14,13 @@ x = "\033[0m"
 DOCKER_INFO = f"""
 ------- Docker Endpoint Info --------
   {w}Machine:{x} {{machine}}
-  {w}Hostname:{x} {{Name}}
-  {w}Operating System:{x} {{OperatingSystem}}
-  {w}Kernel Version:{x} {{KernelVersion}}
-  {w}OSType:{x} {{OSType}}
-  {w}Architecture:{x} {{Architecture}}
-  {w}Total Memory:{x} {{MemTotal}}
-  {w}CPUs:{x} {{NCPU}}
+  {w}Hostname:{x} {{name}}
+  {w}Operating System:{x} {{os}}
+  {w}Kernel Version:{x} {{kernel}}
+  {w}OSType:{x} {{os_type}}
+  {w}Architecture:{x} {{arch}}
+  {w}Total Memory:{x} {{memory_total}}
+  {w}CPUs:{x} {{ncpus}}
 ------------------------------------
 """
 

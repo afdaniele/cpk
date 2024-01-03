@@ -1,7 +1,5 @@
 import argparse
-from typing import Optional
-
-from docker.errors import APIError
+from typing import Optional, List
 
 from .endpoint import CLIEndpointInfoCommand
 from .info import CLIInfoCommand
