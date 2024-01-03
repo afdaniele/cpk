@@ -156,50 +156,66 @@ class CPKProject:
 
     def build_labels(self) -> Dict[str, str]:
         sha: str = self.repository.version.sha if (self.repository.version.sha and self.is_clean()) else "ND"
-        return {
+        labels: Dict[str, str] = {
             self.label("code.vcs"): "git" if self.repository.present else "ND",
             self.label("code.version.head"): self.repository.version.head or "ND",
             self.label("code.version.closest"): self.repository.version.closest or "ND",
             self.label("code.version.sha"): sha,
-            
-            # TODO: we want to represent the hierarchy of images using labels,
-            #  we can do this by using the following labels:
-            #
-            #     cpk.label.current.level: <int>
-            #     cpk.label.level.<int>.description: <str>
-            #     cpk.label.level.<int>.code.location: <str>
-            #     cpk.label.level.<int>.base.registry: <str>
-            #     cpk.label.level.<int>.base.organization: <str>
-            #     cpk.label.level.<int>.base.project: <str>
-            #     cpk.label.level.<int>.base.tag: <str>
-            #     cpk.label.level.<int>.maintainer: <str>
-            #
-            #   so that we can follow the hierarchi starting from `cpk.label.current.level` up to 0
-            #   when we build an image, we add 1 to the base level
-            #   Use local base image if found, otherwise use the remote labels
-            #
-            
-            #
-            # cpk.label.current="${ORGANIZATION}.${NAME}" \
-            # cpk.label.project.${ORGANIZATION}.${NAME}.description="${DESCRIPTION}" \
-            # cpk.label.project.${ORGANIZATION}.${NAME}.code.location="${PROJECT_PATH}" \
-            # cpk.label.project.${ORGANIZATION}.${NAME}.base.registry="${BASE_REGISTRY}" \
-            # cpk.label.project.${ORGANIZATION}.${NAME}.base.organization="${BASE_ORGANIZATION}" \
-            # cpk.label.project.${ORGANIZATION}.${NAME}.base.project="${BASE_REPOSITORY}" \
-            # cpk.label.project.${ORGANIZATION}.${NAME}.base.tag="${BASE_TAG}" \
-            # cpk.label.project.${ORGANIZATION}.${NAME}.maintainer="${MAINTAINER}"
-            #
 
             self.label("code.vcs.repository"): self.repository.name or "ND",
             self.label("code.vcs.branch"): self.repository.branch or "ND",
             self.label("code.vcs.url"): self.repository.origin.url_https or "ND",
-            self.label("template.provider"): self.layers.template.provider,
-            self.label("template.organization"): self.layers.template.organization,
-            self.label("template.name"): self.layers.template.name,
-            self.label("template.version"): self.layers.template.version,
-            self.label("template.url"): self.layers.template.url or "ND",
             **self._launchers_labels(),
         }
+
+        if self.layers.template:
+            labels.update({
+                self.label("template.provider"): self.layers.template.provider,
+                self.label("template.organization"): self.layers.template.organization,
+                self.label("template.name"): self.layers.template.name,
+                self.label("template.version"): self.layers.template.version,
+                self.label("template.url"): self.layers.template.url or "ND",
+            })
+        else:
+            labels.update({
+                self.label("template.provider"): "ND",
+                self.label("template.organization"): "ND",
+                self.label("template.name"): "ND",
+                self.label("template.version"): "ND",
+                self.label("template.url"): "ND",
+            })
+
+
+
+        # TODO: we want to represent the hierarchy of images using labels,
+        #  we can do this by using the following labels:
+        #
+        #     cpk.label.current.level: <int>
+        #     cpk.label.level.<int>.description: <str>
+        #     cpk.label.level.<int>.code.location: <str>
+        #     cpk.label.level.<int>.base.registry: <str>
+        #     cpk.label.level.<int>.base.organization: <str>
+        #     cpk.label.level.<int>.base.project: <str>
+        #     cpk.label.level.<int>.base.tag: <str>
+        #     cpk.label.level.<int>.maintainer: <str>
+        #
+        #   so that we can follow the hierarchi starting from `cpk.label.current.level` up to 0
+        #   when we build an image, we add 1 to the base level
+        #   Use local base image if found, otherwise use the remote labels
+        #
+
+        #
+        # cpk.label.current="${ORGANIZATION}.${NAME}" \
+        # cpk.label.project.${ORGANIZATION}.${NAME}.description="${DESCRIPTION}" \
+        # cpk.label.project.${ORGANIZATION}.${NAME}.code.location="${PROJECT_PATH}" \
+        # cpk.label.project.${ORGANIZATION}.${NAME}.base.registry="${BASE_REGISTRY}" \
+        # cpk.label.project.${ORGANIZATION}.${NAME}.base.organization="${BASE_ORGANIZATION}" \
+        # cpk.label.project.${ORGANIZATION}.${NAME}.base.project="${BASE_REPOSITORY}" \
+        # cpk.label.project.${ORGANIZATION}.${NAME}.base.tag="${BASE_TAG}" \
+        # cpk.label.project.${ORGANIZATION}.${NAME}.maintainer="${MAINTAINER}"
+        #
+
+        return labels
 
     def launchers(self) -> List[str]:
         launchers_dir = os.path.join(self.path, "launchers")
