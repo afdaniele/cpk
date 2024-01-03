@@ -19,7 +19,7 @@ from ...project import CPKProject
 from ...constants import ARCH_TO_DOCKER_PLATFORM
 from ...exceptions import CPKProjectBuildException
 from ...types import Arguments, CPKMachine
-from ...utils.cli import check_git_status
+from ...utils.git import check_git_status
 from ...utils.misc import human_time, configure_binfmt
 from ...utils.image_analyzer import EXTRA_INFO_SEPARATOR, ImageAnalyzer, SEPARATORS_LENGTH
 
@@ -248,6 +248,9 @@ class CLIBuildCommand(AbstractCLICommand):
         )
         cpklogger.debug("Build arguments:\n%s\n" % json.dumps(buildargs, sort_keys=True, indent=4))
 
+        # hook: pre-build
+        project.trigger("pre-build")
+
         # build image
         build_log = []
         print("=" * SEPARATORS_LENGTH)
@@ -273,6 +276,9 @@ class CLIBuildCommand(AbstractCLICommand):
             cpklogger.error(f"An error occurred while building the project image.")
             return False
         dimage = docker.image.inspect(image)
+
+        # hook: post-build
+        project.trigger("post-build")
 
         # tag release images
         if project.is_release():

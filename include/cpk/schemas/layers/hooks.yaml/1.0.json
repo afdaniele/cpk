@@ -1,0 +1,51 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "cpk-project-layer-hooks-1-0",
+    "title": "",
+    "type": "object",
+    "properties": {
+        "schema": {
+            "type": "string",
+            "const": "1.0"
+        },
+        "hooks": {
+            "type": "object",
+            "patternProperties": {
+                "^.*$": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "command": {
+                                "type": ["string", "array"],
+                                "description": "Command to execute",
+                                "if": {
+                                    "type": "array"
+                                },
+                                "then": {
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": {
+                                "type": "boolean",
+                                "description": "Whether this hook is required to be successful",
+                                "default": false
+                            }
+                        },
+                        "required": [
+                            "command"
+                        ],
+                        "additionalProperties": false
+                    }
+                }
+            }
+        }
+    },
+    "required": [
+        "schema",
+        "hooks"
+    ],
+    "additionalProperties": false
+}

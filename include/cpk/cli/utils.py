@@ -3,6 +3,9 @@ import json
 import traceback
 from typing import Any
 
+from functools import partial
+from typing import Callable
+
 
 def remove_argument(parser: argparse.ArgumentParser, arg: str, suppress_errors: bool = True):
     try:
@@ -84,3 +87,12 @@ def as_table(data: dict, title: str, indent_len: int = 2) -> str:
     content = content.strip("\n")
     # ---
     return table.format(content=content)
+
+
+# coloring functions
+color: Callable[[str], str] = lambda c, x: f"\033[{c}m{x}\033[0m"
+green: Callable[[str], str] = partial(color, "32")
+red: Callable[[str], str] = partial(color, "31")
+white: Callable[[str], str] = partial(color, "37")
+blue: Callable[[str], str] = partial(color, "34")
+orange: Callable[[str], str] = partial(color, "33")

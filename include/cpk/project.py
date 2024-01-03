@@ -1,4 +1,3 @@
-import dataclasses
 import glob
 import json
 import os
@@ -10,12 +9,14 @@ import jsonschema
 import requests
 import yaml
 
+from .cli import cpklogger
+from .cli.utils import red, orange
 from .constants import DOCKERHUB_API_URL
 from .exceptions import NotACPKProjectException, DeprecatedCPKProjectFormat1Exception, \
     InvalidCPKProjectLayerFile, CPKProjectLayerSchemaNotSupported
 from .schemas import get_layer_schema, have_schemas_for_layer
 from .types import GitRepository, CPKProjectLayersContainer, Maintainer, CPKProjectDocker, \
-    CPKProjectStructureLayer
+    CPKProjectStructureLayer, CPKProjectHooksLayer
 from .utils.git import get_repo_info
 from .utils.misc import cpk_label
 from .utils.semver import SemanticVersion
@@ -45,8 +46,6 @@ class CPKProject:
         self._repo = get_repo_info(self._path)
         # docker stuff
         self._docker = CPKProjectDocker(_project=self)
-        # find features
-        self._features = CPKProjectFeatures.from_project(self)
 
     @property
     def path(self) -> str:
@@ -98,9 +97,27 @@ class CPKProject:
     def repository(self) -> GitRepository:
         return self._repo
 
-    @property
-    def features(self) -> 'CPKProjectFeatures':
-        return self._features
+    def trigger(self, event: str, *, quiet: bool = False, context: dict = None):
+        # get all the hooks for the given event
+        hooks: List[CPKProjectHooksLayer.Hook] = list(self.layers.hooks.filter(event))
+        # nothing to do if there are no hooks
+        if not hooks:
+            return
+        # add default context
+        default_context = {
+            "PROJECT_NAME": self.name,
+            "PROJECT_PATH": self.path,
+            "PROJECT_DESCRIPTION": self.description,
+            "PROJECT_ORGANIZATION": self.organization
+        }
+        context = {**default_context, **(context or {})}
+        # execute hooks
+        if hooks and not quiet:
+            cpklogger.info(f"Triggering {len(hooks)} hook(s) for event '{event}'...")
+        for hook in hooks:
+            if not quiet:
+                cpklogger.info(f"Executing hook: $> {orange(hook.command)} ...")
+            hook.execute(wkdir=self.path, context=context)
 
     # @property
     # def mappings(self) -> List[CPKFileMapping]:
@@ -334,16 +351,3 @@ class CPKProject:
             headers={"Authorization": "Bearer {0}".format(token)},
         ).json()
         return res
-
-
-@dataclasses.dataclass
-class CPKProjectFeatures:
-    launchers: bool
-    assets: bool
-
-    @staticmethod
-    def from_project(project: CPKProject) -> 'CPKProjectFeatures':
-        return CPKProjectFeatures(
-            launchers=os.path.isdir(os.path.join(project.path, 'launchers')),
-            assets=os.path.isdir(os.path.join(project.path, 'assets'))
-        )

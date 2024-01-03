@@ -4,29 +4,25 @@ import json
 import logging
 import os
 import re
+import subprocess
 from abc import abstractmethod, ABC
 from enum import Enum
 from shutil import rmtree
-from typing import List, Dict, Optional, Union, Type, Iterator, Any
-
-import jsonschema
-from cpk.utils.misc import assert_canonical_arch
-
-import cpk
-
-from cpk.utils.progress_bar import ProgressBar
-from .constants import CANONICAL_ARCH, DEFAULT_DOCKER_REGISTRY, DEFAULT_DOCKER_TAG, \
-    DEFAULT_DOCKER_ORGANIZATION, DEFAULT_DOCKER_REGISTRY_PORT
-from .exceptions import \
-    NotACPKProjectException, \
-    InvalidCPKTemplateFile, InvalidCPKTemplate, \
-    CPKTemplateSchemaNotSupported, CPKException
-from .utils.semver import SemanticVersion
+from typing import List, Dict, Optional, Union, Type, Iterator, Any, Tuple
 
 from dockertown import Image, DockerClient
 
+import cpk
+from cpk.utils.misc import assert_canonical_arch
+from .constants import CANONICAL_ARCH, DEFAULT_DOCKER_REGISTRY, DEFAULT_DOCKER_TAG, \
+    DEFAULT_DOCKER_ORGANIZATION, DEFAULT_DOCKER_REGISTRY_PORT
+from .exceptions import \
+    CPKException
+from .utils.semver import SemanticVersion
+
 Arguments = List[str]
 CPKProjectGenericLayer = dict
+EventName = str
 NOTSET = object
 
 
@@ -176,6 +172,62 @@ class CPKProjectStructureLayer(CPKProjectLayer):
 
 
 @dataclasses.dataclass
+class CPKProjectHooksLayer(CPKProjectLayer):
+    _hooks: Dict[EventName, List['CPKProjectHooksLayer.Hook']] = dataclasses.field(default_factory=dict)
+
+    @dataclasses.dataclass
+    class Hook:
+        command: Union[str, List[str]]
+        required: bool = False
+
+        def execute(self, wkdir: str, context: dict = None):
+            env = os.environ.copy()
+            env.update(context or {})
+            subprocess.run(
+                self.command,
+                cwd=wkdir,
+                check=self.required,
+                env=env,
+                shell=isinstance(self.command, str)
+            )
+
+        @classmethod
+        def parse(cls, data: dict) -> 'CPKProjectHooksLayer.Hook':
+            return CPKProjectHooksLayer.Hook(**data)
+
+        def as_dict(self) -> dict:
+            return dataclasses.asdict(self)
+
+    @property
+    def all(self) -> Iterator[Tuple[EventName, List[Hook]]]:
+        return self._hooks.items().__iter__()
+
+    def filter(self, event: EventName) -> Iterator[Hook]:
+        return iter(self._hooks.get(event, []))
+
+    @classmethod
+    def parse(cls, data: dict) -> 'CPKProjectHooksLayer':
+        hooks: Dict[EventName, List['CPKProjectHooksLayer.Hook']] = {}
+        for event, items in data["hooks"].items():
+            hooks[event] = []
+            for item in items:
+                hooks[event].append(CPKProjectHooksLayer.Hook.parse(item))
+        return CPKProjectHooksLayer(
+            _hooks=hooks
+        )
+
+    def as_dict(self) -> dict:
+        return {
+            "schema": "1.0",
+            "hooks": {
+                event: [
+                    item.as_dict() for item in items
+                ] for event, items in self._hooks.items()
+            }
+        }
+
+
+@dataclasses.dataclass
 class CPKProjectBaseLayer(CPKProjectLayer):
     registry: str
     organization: str
@@ -200,6 +252,7 @@ class CPKProjectLayersContainer:
     _base: CPKProjectBaseLayer
     _template: Optional[CPKProjectTemplateLayer] = None
     _structure: Optional[CPKProjectStructureLayer] = None
+    _hooks: Optional[CPKProjectHooksLayer] = dataclasses.field(default_factory=CPKProjectHooksLayer)
 
     @property
     def self(self) -> CPKProjectSelfLayer:
@@ -221,6 +274,10 @@ class CPKProjectLayersContainer:
     def structure(self) -> Optional[CPKProjectStructureLayer]:
         return self._structure
 
+    @property
+    def hooks(self) -> Optional[CPKProjectHooksLayer]:
+        return self._hooks
+
     def get(self, layer: str, default: Any = NOTSET) -> Union[CPKProjectLayer, dict]:
         try:
             return self.__getitem__(layer)
@@ -236,6 +293,7 @@ class CPKProjectLayersContainer:
             "format": CPKProjectFormatLayer,
             "template": CPKProjectTemplateLayer,
             "structure": CPKProjectStructureLayer,
+            "hooks": CPKProjectHooksLayer,
             "base": CPKProjectBaseLayer,
         }
         parsed_layers: Dict[str, Union[CPKProjectLayer, dict]] = {}

@@ -22,7 +22,7 @@ from ..logger import cpklogger
 from ..utils import combine_args
 from ...exceptions import NotACPKProjectException
 from ...types import CPKFileMappingTrigger, CPKMachine, Arguments, CPKFileMapping
-from ...utils.cli import check_git_status
+from ...utils.git import check_git_status
 
 SUPPORTED_SUBCOMMANDS = [
     "attach"

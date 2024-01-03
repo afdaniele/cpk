@@ -1,6 +1,8 @@
 import argparse
 from typing import Optional, List
 
+from dockertown.exceptions import NoSuchImage, DockerException
+
 from .endpoint import CLIEndpointInfoCommand
 from .info import CLIInfoCommand
 from .. import AbstractCLICommand, cpklogger
@@ -8,8 +10,7 @@ from ..utils import combine_args
 from ... import CPKProject
 from ...exceptions import CPKProjectPushException
 from ...types import CPKMachine, Arguments
-from ...utils.cli import check_git_status
-from ...utils.docker import push_image
+from ...utils.git import check_git_status
 
 
 class CLIPushCommand(AbstractCLICommand):
@@ -76,18 +77,24 @@ class CLIPushCommand(AbstractCLICommand):
                 project.docker.image.release_name(parsed.arch).compile()
             ]
 
+        # hook: pre-push
+        project.trigger("pre-push")
+
         for image in images:
             # print info about registry
             msg = "Pushing image {} to {}.".format(image, project.docker.registry.compile(True))
             cpklogger.info(msg)
             # push image
             try:
-                push_image(machine, image, progress=True)
-            except APIError as e:
+                machine.push_image(image, progress=True)
+            except (NoSuchImage, DockerException) as e:
                 cpklogger.error(f"An error occurred while pushing the project image:\n{str(e)}")
                 return False
             except CPKProjectPushException:
                 cpklogger.error(f"An error occurred while building the project image.")
                 return False
+
+        # hook: post-push
+        project.trigger("post-push")
 
         cpklogger.info("Image pushed successfully!")

@@ -1,0 +1,10 @@
+schema: "1.0"
+hooks:
+    pre-build:
+        - command: ls
+          required: true
+    post-build:
+        - command: ls
+          required: true
+        - command: sleep 1
+          required: true
