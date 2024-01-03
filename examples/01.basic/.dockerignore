@@ -3,13 +3,11 @@
 
 # Allow files and directories
 !assets
-!packages
+!cpk
 !launchers
-!project.cpk
+!packages
 !dependencies-apt.txt
 !dependencies-py3.txt
-!configurations.yaml
-!setup.sh
 
 
 # YOUR FILES LISTED BELOW THIS LINE (IMPORTANT: PREPEND !)
