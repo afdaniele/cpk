@@ -1,0 +1,8 @@
+schema: "1.0"
+name: "dependencies"
+organization: "cpk-examples"
+description: "Example of a CPK project with dependencies"
+maintainer:
+    name: "Andrea F. Daniele"
+    email: "andrea.francesco.daniele@gmail.com"
+version: 0.0.0

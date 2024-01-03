@@ -46,9 +46,6 @@ RUN cpk-pip3-install ${PROJECT_PATH}/dependencies-py3.txt
 COPY ./launchers/. "${PROJECT_LAUNCHERS_PATH}/"
 RUN cpk-install-launchers "${PROJECT_LAUNCHERS_PATH}"
 
-# define default command
-CMD ["bash", "-c", "launcher-${CPK_LAUNCHER}"]
-
 # store project metadata
 LABEL cpk.label.project.${ORGANIZATION}.${PROJECT_NAME}.code.location="${PROJECT_PATH}"
 # <== Do not change the code above this line

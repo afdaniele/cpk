@@ -1,0 +1,8 @@
+schema: "1.0"
+name: "chain-lvl1"
+organization: "cpk-examples"
+description: "CPK example of a chain of projects"
+maintainer:
+    name: "Andrea F. Daniele"
+    email: "andrea.francesco.daniele@gmail.com"
+version: 0.0.0

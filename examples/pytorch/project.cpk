@@ -1,9 +1,0 @@
-{
-    "description": "PyTorch image",
-    "maintainer": "Andrea F. Daniele",
-    "name": "pytorch",
-    "organization": "cpk-examples",
-    "schema": "1.0",
-    "template": null,
-    "version": "0.0.0"
-}

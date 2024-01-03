@@ -34,17 +34,12 @@ ENV CPK_PROJECT_NAME="${PROJECT_NAME}" \
     CPK_PROJECT_LAUNCHERS_PATH="${PROJECT_LAUNCHERS_PATH}" \
     CPK_LAUNCHER="${LAUNCHER}"
 
-# install apt dependencies
-COPY ./dependencies-apt.txt "${PROJECT_PATH}/"
-RUN cpk-apt-install ${PROJECT_PATH}/dependencies-apt.txt
-
-# install python3 dependencies
-COPY ./dependencies-py3.txt "${PROJECT_PATH}/"
-RUN cpk-pip3-install ${PROJECT_PATH}/dependencies-py3.txt
-
 # install launcher scripts
 COPY ./launchers/. "${PROJECT_LAUNCHERS_PATH}/"
 RUN cpk-install-launchers "${PROJECT_LAUNCHERS_PATH}"
+
+# copy the source code
+COPY ./packages "${CPK_PROJECT_PATH}/packages"
 
 # store project metadata
 LABEL cpk.label.project.${ORGANIZATION}.${PROJECT_NAME}.code.location="${PROJECT_PATH}"
