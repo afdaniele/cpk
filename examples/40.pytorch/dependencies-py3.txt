@@ -1,1 +1,4 @@
 # LIST YOUR PYTHON3 PACKAGES HERE
+
+torch==1.12.1
+numpy==1.21.5
