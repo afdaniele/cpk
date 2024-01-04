@@ -68,7 +68,7 @@ class ImageAnalyzer:
 
         # define RegEx patterns
         step_pattern = re.compile(r"^#[0-9]+ \[\s*([0-9]+)/([0-9]+)] (.*)$")
-        naming_pattern = re.compile(r"^#[0-9]+ naming to (.*) done$")
+        naming_pattern = re.compile(r"^#[0-9]+ naming to (.*) (.+) done$")
         done_pattern = re.compile(r"^#[0-9]+ DONE .*$")
         cached_pattern = re.compile(r"^#[0-9]+ CACHED$")
 
