@@ -75,13 +75,15 @@ setup(
     keywords=['code', 'container', 'containerization', 'package', 'toolkit', 'docker'],
     install_requires=[
         'requests',
+        'pytimeparse',
         'jsonschema',
         'termcolor',
         'pyyaml',
         'sshconf',
         'cryptography',
         'questionary',
-        'dockertown==0.2.3'
+        'dockertown==0.2.3',
+        'mergedeep'
     ],
     scripts=[
         'include/cpk/bin/cpk'

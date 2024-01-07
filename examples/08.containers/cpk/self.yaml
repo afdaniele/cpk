@@ -1,0 +1,8 @@
+schema: "1.0"
+name: "containers"
+organization: "cpk-examples"
+description: "Example of a CPK project with containers configurations layer"
+maintainer:
+    name: "John Doe"
+    email: "cpk@example.com"
+version: 0.0.0

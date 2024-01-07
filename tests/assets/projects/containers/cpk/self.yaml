@@ -1,0 +1,8 @@
+schema: "1.0"
+name: "containers"
+organization: "cpk-unit-tests"
+description: "CPK example project with containers configurations layer for unit tests"
+maintainer:
+    name: "Jon Doe"
+    email: "cpk@example.com"
+version: 0.0.0

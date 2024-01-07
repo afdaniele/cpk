@@ -24,9 +24,6 @@ from ...exceptions import NotACPKProjectException
 from ...types import CPKFileMappingTrigger, CPKMachine, Arguments, CPKFileMapping
 from ...utils.git import check_git_status
 
-SUPPORTED_SUBCOMMANDS = [
-    "attach"
-]
 RSYNC_DESTINATION_PATH = "/tmp/"
 
 
@@ -45,7 +42,6 @@ class CLIRunCommand(AbstractCLICommand):
             help="Name of the container"
         )
         parser.add_argument(
-            "-c",
             "--cmd",
             default=None,
             help="Command to run in the Docker container"
@@ -62,12 +58,18 @@ class CLIRunCommand(AbstractCLICommand):
             action="store_true",
             help="Whether to force pull the image of the project",
         )
-        # parser.add_argument(
-        #     "--plain",
-        #     default=False,
-        #     action="store_true",
-        #     help="Whether to run the image without default module configuration",
-        # )
+        parser.add_argument(
+            "--plain",
+            default=False,
+            action="store_true",
+            help="Whether to run the image without default module configuration",
+        )
+        parser.add_argument(
+            "-c", "--configuration",
+            default=None,
+            type=str,
+            help="Container configuration to run the container with (default: 'default')",
+        )
         parser.add_argument(
             "--no-multiarch",
             default=False,
@@ -75,6 +77,7 @@ class CLIRunCommand(AbstractCLICommand):
             help="Whether to disable multiarch support (based on bin_fmt)",
         )
         parser.add_argument(
+            # TODO: this becomes True by default
             "-M",
             "--mount",
             default=False,
@@ -112,6 +115,7 @@ class CLIRunCommand(AbstractCLICommand):
             help="Add X-Forwarding configuration (adds support for GUI applications)",
         )
         parser.add_argument(
+            # TODO: this becomes True by default
             "-s",
             "--sync",
             default=False,
@@ -119,6 +123,7 @@ class CLIRunCommand(AbstractCLICommand):
             help="Sync code from local project to remote"
         )
         parser.add_argument(
+            # TODO: this becomes True by default
             "-sm",
             "--sync-mirror",
             default=False,

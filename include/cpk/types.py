@@ -6,11 +6,20 @@ import os
 import re
 import subprocess
 from abc import abstractmethod, ABC
+from contextlib import ExitStack, contextmanager
+from datetime import timedelta
 from enum import Enum
 from shutil import rmtree
-from typing import List, Dict, Optional, Union, Type, Iterator, Any, Tuple
+from tempfile import TemporaryDirectory
+from typing import List, Dict, Optional, Union, Type, Iterator, Any, Tuple, ContextManager
 
 from dockertown import Image, DockerClient
+from dockertown.components.container.cli_wrapper import ValidPortMapping, Container, ValidContainer
+from dockertown.components.image.cli_wrapper import ValidImage
+from dockertown.components.network.cli_wrapper import ValidNetwork
+from dockertown.components.volume.cli_wrapper import VolumeDefinition
+from dockertown.utils import ValidPath
+from mergedeep import merge, Strategy
 
 import cpk
 from cpk.utils.misc import assert_canonical_arch
@@ -18,6 +27,8 @@ from .constants import CANONICAL_ARCH, DEFAULT_DOCKER_REGISTRY, DEFAULT_DOCKER_T
     DEFAULT_DOCKER_ORGANIZATION, DEFAULT_DOCKER_REGISTRY_PORT
 from .exceptions import \
     CPKException
+from .models.docker.compose import Service, Volumes
+from .utils.dockertown import populate_dockertown_configuration_from_docker_compose_service
 from .utils.semver import SemanticVersion
 
 Arguments = List[str]
@@ -228,6 +239,280 @@ class CPKProjectHooksLayer(CPKProjectLayer):
 
 
 @dataclasses.dataclass
+class ManagedNamedVolume:
+    name: str
+    volume: Volumes
+
+    @dataclasses.dataclass
+    class ContextManager(ContextManager[TemporaryDirectory]):
+        managed: 'ManagedNamedVolume'
+        location: Optional[str] = None
+
+        def __enter__(self):
+            if self.location is None:
+                with TemporaryDirectory() as tmpdir:
+                    self.managed.volume.source = tmpdir
+                    yield tmpdir
+            else:
+                dpath: str = os.path.join(self.location, "named_volumes", self.managed.name)
+                os.makedirs(dpath, exist_ok=True)
+                self.managed.volume.source = dpath
+                yield dpath
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            self.managed.volume.source = None
+
+    def instantiate(self, location: Optional[str] = None) -> 'ManagedNamedVolume.ContextManager':
+        return ManagedNamedVolume.ContextManager(self, location=location)
+
+
+@dataclasses.dataclass
+class DockertownContainerConfiguration(ContextManager['DockertownContainerConfiguration']):
+    image: Optional[ValidImage] = None
+    command: List[str] = dataclasses.field(default_factory=list)
+    add_hosts: List[Tuple[str, str]] = dataclasses.field(default_factory=list)
+    blkio_weight: Optional[int] = None
+    blkio_weight_device: List[str] = dataclasses.field(default_factory=list)
+    cap_add: List[str] = dataclasses.field(default_factory=list)
+    cap_drop: List[str] = dataclasses.field(default_factory=list)
+    cgroup_parent: Optional[str] = None
+    cgroupns: Optional[str] = None
+    cidfile: Optional[ValidPath] = None
+    cpu_period: Optional[int] = None
+    cpu_quota: Optional[int] = None
+    cpu_rt_period: Optional[int] = None
+    cpu_rt_runtime: Optional[int] = None
+    cpu_shares: Optional[int] = None
+    cpus: Optional[float] = None
+    cpuset_cpus: Optional[List[int]] = None
+    cpuset_mems: Optional[List[int]] = None
+    detach: bool = False
+    devices: List[str] = dataclasses.field(default_factory=list)
+    device_cgroup_rules: List[str] = dataclasses.field(default_factory=list)
+    device_read_bps: List[str] = dataclasses.field(default_factory=list)
+    device_read_iops: List[str] = dataclasses.field(default_factory=list)
+    device_write_bps: List[str] = dataclasses.field(default_factory=list)
+    device_write_iops: List[str] = dataclasses.field(default_factory=list)
+    content_trust: bool = False
+    dns: List[str] = dataclasses.field(default_factory=list)
+    dns_options: List[str] = dataclasses.field(default_factory=list)
+    dns_search: List[str] = dataclasses.field(default_factory=list)
+    domainname: Optional[str] = None
+    entrypoint: Optional[str] = None
+    envs: Dict[str, str] = dataclasses.field(default_factory=dict)
+    env_files: Union[ValidPath, List[ValidPath]] = dataclasses.field(default_factory=list)
+    expose: Union[int, List[int]] = dataclasses.field(default_factory=list)
+    gpus: Union[int, str, None] = None
+    groups_add: List[str] = dataclasses.field(default_factory=list)
+    healthcheck: bool = True
+    health_cmd: Optional[str] = None
+    health_interval: Union[None, int, timedelta] = None
+    health_retries: Optional[int] = None
+    health_start_period: Union[None, int, timedelta] = None
+    health_timeout: Union[None, int, timedelta] = None
+    hostname: Optional[str] = None
+    init: bool = False
+    interactive: bool = False
+    ip: Optional[str] = None
+    ip6: Optional[str] = None
+    ipc: Optional[str] = None
+    isolation: Optional[str] = None
+    kernel_memory: Union[int, str, None] = None
+    labels: Dict[str, str] = dataclasses.field(default_factory=dict)
+    label_files: List[ValidPath] = dataclasses.field(default_factory=list)
+    link: List[ValidContainer] = dataclasses.field(default_factory=list)
+    link_local_ip: List[str] = dataclasses.field(default_factory=list)
+    log_driver: Optional[str] = None
+    log_options: List[str] = dataclasses.field(default_factory=list)
+    mac_address: Optional[str] = None
+    memory: Union[int, str, None] = None
+    memory_reservation: Union[int, str, None] = None
+    memory_swap: Union[int, str, None] = None
+    memory_swappiness: Optional[int] = None
+    mounts: List[List[str]] = dataclasses.field(default_factory=list)
+    name: Optional[str] = None
+    networks: List[ValidNetwork] = dataclasses.field(default_factory=list)
+    network_aliases: List[str] = dataclasses.field(default_factory=list)
+    oom_kill: bool = True
+    oom_score_adj: Optional[int] = None
+    pid: Optional[str] = None
+    pids_limit: Optional[int] = None
+    platform: Optional[str] = None
+    privileged: bool = False
+    publish: List[ValidPortMapping] = dataclasses.field(default_factory=list)
+    publish_all: bool = False
+    pull: str = "missing"
+    read_only: bool = False
+    restart: Optional[str] = None
+    remove: bool = False
+    runtime: Optional[str] = None
+    security_options: List[str] = dataclasses.field(default_factory=list)
+    shm_size: Union[int, str, None] = None
+    sig_proxy: bool = True
+    stop_signal: Optional[str] = None
+    stop_timeout: Optional[int] = None
+    storage_options: List[str] = dataclasses.field(default_factory=list)
+    stream: bool = False
+    sysctl: Dict[str, str] = dataclasses.field(default_factory=dict)
+    tmpfs: List[ValidPath] = dataclasses.field(default_factory=list)
+    tty: bool = False
+    ulimit: List[str] = dataclasses.field(default_factory=list)
+    user: Optional[str] = None
+    userns: Optional[str] = None
+    uts: Optional[str] = None
+    volumes: Optional[List[VolumeDefinition]] = dataclasses.field(default_factory=list)
+    volume_driver: Optional[str] = None
+    volumes_from: List[ValidContainer] = dataclasses.field(default_factory=list)
+    workdir: Optional[ValidPath] = None
+
+    # temporary data
+    _temporary: dict = dataclasses.field(init=False, default_factory=dict)
+    _named_volumes: Dict[str, ManagedNamedVolume] = dataclasses.field(init=False, default_factory=list)
+    _deployment_dir: str = dataclasses.field(init=False, default=None)
+
+    def set(self, key: str, value: Any):
+        if not hasattr(self, key):
+            raise KeyError(f"Invalid configuration key '{key}'.")
+        # ---
+        setattr(self, key, value)
+
+    def get(self, key: str):
+        if not hasattr(self, key):
+            raise KeyError(f"Invalid configuration key '{key}'.")
+        # ---
+        return getattr(self, key)
+
+    def add_named_volume(self, name: str, volume: Volumes):
+        self._named_volumes[name] = ManagedNamedVolume(name, volume)
+
+    def minimal_configuration(self) -> dict:
+        cfg: dict = {}
+        for field in dataclasses.fields(self):
+            # exclude - private fields
+            if not field.init:
+                continue
+            # exclude - optional fields with default constructor
+            if field.default_factory in [list, dict] and len(self.get(field.name)) == 0:
+                continue
+            # exclude - optional fields with default value
+            if field.default is not dataclasses.MISSING and self.get(field.name) == field.default:
+                continue
+            # ---
+            cfg[field.name] = self.get(field.name)
+        return cfg
+
+    def __enter__(self) -> dict:
+        self._temporary["mounts"] = []
+        with ExitStack() as stack:
+            # make temporary volumes
+            for volume in self._named_volumes.values():
+                tmpdir: TemporaryDirectory = stack.enter_context(volume.instantiate(self._deployment_dir))
+                self._temporary["mounts"].append([tmpdir.name, volume.volume.target])
+            # ---
+            yield dataclasses.asdict(self)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    @classmethod
+    def from_service(cls, service: Service) -> 'DockertownContainerConfiguration':
+        cfg: DockertownContainerConfiguration = DockertownContainerConfiguration()
+        populate_dockertown_configuration_from_docker_compose_service(cfg, service)
+        return cfg
+
+
+@dataclasses.dataclass
+class CPKContainerConfiguration:
+    _raw: dict = dataclasses.field(default_factory=dict)
+    service: Service = dataclasses.field(default_factory=Service)
+    extends: List[str] = dataclasses.field(default_factory=list)
+
+    def as_docker_compose_file(self, service_name: str = "service", **kwargs) \
+            -> dict:
+        return {
+            "version": "3.7",
+            "services": {
+                service_name: merge(self._raw, kwargs, strategy=Strategy.ADDITIVE)
+            }
+        }
+
+    def as_dockertown_configuration(self) -> DockertownContainerConfiguration:
+        return DockertownContainerConfiguration.from_service(self.service)
+
+    @contextmanager
+    def container(self, project: 'cpk.CPKProject', machine: 'CPKMachine', **kwargs) -> Container:
+        image: str = project.docker.image.name(arch=machine.get_architecture()).compile()
+        # ---
+        with DockertownContainerConfiguration.from_service(self.service) as config:
+            container: Container = machine.get_client().container.run(
+                image,
+                **merge(config, kwargs, strategy=Strategy.ADDITIVE)
+            )
+            try:
+                yield container
+            finally:
+                pass
+
+    @classmethod
+    def parse(cls, data: dict) -> 'CPKContainerConfiguration':
+        data = copy.copy(data)
+        extends: List[str] = data.pop("__extends__", [])
+        service = Service(**data)
+        return CPKContainerConfiguration(
+            _raw=data,
+            service=service,
+            extends=extends
+        )
+
+    def as_dict(self) -> dict:
+        return {
+            **self._raw,
+            **({"__extends__": self.extends} if self.extends else {})
+        }
+
+    def __eq__(self, other):
+        if not isinstance(other, CPKContainerConfiguration):
+            return False
+        return self.as_dict() == other.as_dict()
+
+
+@dataclasses.dataclass
+class CPKProjectContainersLayer(CPKProjectLayer):
+    _containers: Dict[str, 'CPKContainerConfiguration'] = \
+        dataclasses.field(default_factory=dict)
+
+    def has(self, name: str) -> bool:
+        return name in self._containers
+
+    def get(self, name: str, default: Any = NOTSET) -> CPKContainerConfiguration:
+        if name not in self._containers and default is NOTSET:
+            raise KeyError(f"Container configuration with name '{name}' not found.")
+        return self._containers.get(name, default)
+
+    @property
+    def all(self) -> Iterator[Tuple[str, CPKContainerConfiguration]]:
+        return self._containers.items().__iter__()
+
+    @classmethod
+    def parse(cls, data: dict) -> 'CPKProjectContainersLayer':
+        containers: Dict[str, 'CPKContainerConfiguration'] = {}
+        for name, configuration in data["containers"].items():
+            containers[name] = CPKContainerConfiguration.parse(configuration)
+        return CPKProjectContainersLayer(
+            _containers=containers
+        )
+
+    def as_dict(self) -> dict:
+        return {
+            "schema": "1.0",
+            "containers": {
+                name: configuration.as_dict()
+                for name, configuration in self._containers.items()
+            }
+        }
+
+
+@dataclasses.dataclass
 class CPKProjectBaseLayer(CPKProjectLayer):
     registry: str
     organization: str
@@ -253,6 +538,8 @@ class CPKProjectLayersContainer:
     _template: Optional[CPKProjectTemplateLayer] = None
     _structure: Optional[CPKProjectStructureLayer] = None
     _hooks: Optional[CPKProjectHooksLayer] = dataclasses.field(default_factory=CPKProjectHooksLayer)
+    _containers: Optional[CPKProjectContainersLayer] = dataclasses.field(
+        default_factory=CPKProjectContainersLayer)
 
     @property
     def self(self) -> CPKProjectSelfLayer:
@@ -275,8 +562,12 @@ class CPKProjectLayersContainer:
         return self._structure
 
     @property
-    def hooks(self) -> Optional[CPKProjectHooksLayer]:
+    def hooks(self) -> CPKProjectHooksLayer:
         return self._hooks
+
+    @property
+    def containers(self) -> CPKProjectContainersLayer:
+        return self._containers
 
     def get(self, layer: str, default: Any = NOTSET) -> Union[CPKProjectLayer, dict]:
         try:
@@ -294,6 +585,7 @@ class CPKProjectLayersContainer:
             "template": CPKProjectTemplateLayer,
             "structure": CPKProjectStructureLayer,
             "hooks": CPKProjectHooksLayer,
+            "containers": CPKProjectContainersLayer,
             "base": CPKProjectBaseLayer,
         }
         parsed_layers: Dict[str, Union[CPKProjectLayer, dict]] = {}

@@ -4,19 +4,21 @@ import os
 from pathlib import Path
 from typing import Dict, Union, List, Optional
 
-import cpk
 import jsonschema
 import requests
 import yaml
+from jsonschema.validators import Draft202012Validator
+from referencing import Registry
 
+import cpk
 from .cli import cpklogger
-from .cli.utils import red, orange
+from .cli.utils import orange
 from .constants import DOCKERHUB_API_URL
 from .exceptions import NotACPKProjectException, DeprecatedCPKProjectFormat1Exception, \
     InvalidCPKProjectLayerFile, CPKProjectLayerSchemaNotSupported
-from .schemas import get_layer_schema, have_schemas_for_layer
+from .schemas import get_layer_schema, have_schemas_for_layer, load_standard_schemas
 from .types import GitRepository, CPKProjectLayersContainer, Maintainer, CPKProjectDocker, \
-    CPKProjectStructureLayer, CPKProjectHooksLayer
+    CPKProjectStructureLayer, CPKProjectHooksLayer, CPKContainerConfiguration
 from .utils.git import get_repo_info
 from .utils.misc import cpk_label
 from .utils.semver import SemanticVersion
@@ -97,6 +99,9 @@ class CPKProject:
     def repository(self) -> GitRepository:
         return self._repo
 
+    def configuration(self, key: str) -> Optional[CPKContainerConfiguration]:
+        return self.layers.containers.get(key, None)
+
     def trigger(self, event: str, *, quiet: bool = False, context: dict = None):
         # get all the hooks for the given event
         hooks: List[CPKProjectHooksLayer.Hook] = list(self.layers.hooks.filter(event))
@@ -118,34 +123,6 @@ class CPKProject:
             if not quiet:
                 cpklogger.info(f"Executing hook: $> {orange(hook.command)} ...")
             hook.execute(wkdir=self.path, context=context)
-
-    # @property
-    # def mappings(self) -> List[CPKFileMapping]:
-    #     project_maps = self._info.mappings
-    #     template_maps = []
-    #     # project mappings have the priority over template mappings,
-    #     # keep only the template mappings whose destination does not collide with any
-    #     # of the project mappings
-    #     for tmapping in self._info.template.mappings:
-    #         collision = False
-    #         for pmapping in project_maps:
-    #             if pmapping.destination == tmapping.destination:
-    #                 collision = True
-    #                 break
-    #         if not collision:
-    #             template_maps.append(tmapping)
-    #     # replace placeholders in mappings
-    #     placeholders = {
-    #         "project_name": self.name
-    #     }
-    #     mappings = []
-    #     for mapping in template_maps + project_maps:
-    #         cmapping = copy.deepcopy(mapping)
-    #         cmapping.source = mapping.source.format(**placeholders)
-    #         cmapping.destination = mapping.destination.format(**placeholders)
-    #         mappings.append(cmapping)
-    #     # ---
-    #     return mappings
 
     def resource(self, resource: str) -> str:
         return os.path.join(self.path, resource.lstrip('/'))
@@ -201,8 +178,6 @@ class CPKProject:
                 self.label("template.version"): "ND",
                 self.label("template.url"): "ND",
             })
-
-
 
         # TODO: we want to represent the hierarchy of images using labels,
         #  we can do this by using the following labels:
@@ -306,6 +281,9 @@ class CPKProject:
     def _read_layers(path: str) -> Dict[str, dict]:
         layers: Dict[str, dict] = {}
         layers_pattern: str = os.path.join(path, "cpk", "*.yaml")
+        # create jsonschema registry
+        registry = Registry().with_resources(load_standard_schemas().items().__iter__())
+        # iterate over all the layers
         for layer_fpath in glob.glob(layers_pattern):
             # get layer name and content
             layer_name: str = Path(layer_fpath).stem
@@ -320,12 +298,15 @@ class CPKProject:
             # make sure we support that schema
             if have_schemas_for_layer(layer_name):
                 try:
-                    layer_schema = get_layer_schema(layer_name, layer_schema_version)
+                    layer_schema: dict = get_layer_schema(layer_name, layer_schema_version)
                 except FileNotFoundError:
                     raise CPKProjectLayerSchemaNotSupported(layer_name, layer_schema_version)
+                # create jsonschema validator
+                # noinspection PyArgumentList
+                validator = Draft202012Validator(layer_schema, registry=registry)
                 # validate metadata against its declared schema
                 try:
-                    jsonschema.validate(layer, schema=layer_schema)
+                    validator.validate(layer)
                 except jsonschema.exceptions.ValidationError as e:
                     raise InvalidCPKProjectLayerFile(path, str(e))
             # add layer to list

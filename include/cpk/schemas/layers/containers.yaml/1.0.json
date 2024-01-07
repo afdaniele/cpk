@@ -1,0 +1,45 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "cpk-project-layer-containers-1-0",
+    "title": "",
+    "type": "object",
+    "properties": {
+        "schema": {
+            "type": "string",
+            "const": "1.0"
+        },
+        "containers": {
+            "type": "object",
+            "patternProperties": {
+                "^[a-zA-Z0-9._-]+$": {
+                    "allOf": [
+                        {
+                            "$ref": "compose-spec#/definitions/service",
+                            "additionalProperties": true
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "__extends__": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "description": "List of configurations to inherit from",
+                                    "uniqueItems": true
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+            
+            
+        }
+    },
+    "required": [
+        "schema",
+        "containers"
+    ],
+    "additionalProperties": false
+}

@@ -1,0 +1,153 @@
+schema: "1.0"
+containers:
+    default: {}
+    # ---
+    development:
+        volumes:
+            - ./:${CPK_PROJECT_PATH}
+    # ---
+    ports:
+        ports:
+            - 8080:80
+            - 9090:90
+            - 9091:91/udp
+    # ---
+    privilege:
+        privileged: true
+    # ---
+    nethost:
+        network_mode: host
+    # ---
+    named:
+        container_name: my_container
+    # ---
+    workdir:
+        working_dir: /path/to/workdir
+    # ---
+    interactive:
+        tty: true
+        stdin_open: true
+    # ---
+    environment:
+        environment:
+            - MY_ENV_VAR=foo
+            - MY_OTHER_ENV_VAR=bar
+    # ---
+    envfile:
+        env_file:
+            - .env
+    # ---
+    labels:
+        labels:
+            - "com.example.description=Webapp"
+            - "com.example.department=Finance"
+            - "com.example.label-with-empty-value="
+    # ---
+    restart:
+        restart: always
+    # ---
+    stopsignal:
+        stop_signal: SIGKILL
+    # ---
+    healthcheck:
+        healthcheck:
+            test: ["curl", "-f", "http://localhost"]
+            interval: 1m30s
+            timeout: 10s
+            retries: 3
+            start_period: 40s
+    # ---
+    command:
+        command: ["echo", "Hello world!"]
+    # ---
+    tmpfs:
+        tmpfs:
+            - /tmp
+            - /run
+    # ---
+    cgroup_parent:
+        cgroup_parent: cg-parent
+    # ---
+    cgroupns:
+        cgroup: host
+    # ---
+    hostname:
+        hostname: myhostname
+    # ---
+    ipc:
+        ipc: host
+    # ---
+    macaddress:
+        mac_address: 02:42:ac:11:65:43
+    # ---
+    pid:
+        pid: host
+    # ---
+    caps:
+        cap_add:
+            - SYS_ADMIN
+        cap_drop:
+            - NET_ADMIN
+    # ---
+    devices:
+        devices:
+            - "/dev/ttyUSB0:/dev/ttyUSB0"
+    # ---
+    sysctls:
+        sysctls:
+            - net.core.somaxconn=1024
+    # ---
+    dns:
+        dns:
+            - 8.8.8.8
+        dns_search:
+            - example.com
+    # ---
+    domainname:
+        domainname: example.com
+    # ---
+    userns:
+        userns_mode: "host"
+    # ---
+    entrypoint:
+        entrypoint: ["/bin/sh", "-c"]
+    # ---
+    security_opt:
+        security_opt:
+            - seccomp:unconfined
+    # ---
+    extra_hosts:
+        extra_hosts:
+            somehost: 1.1.1.1
+    # ---
+    links:
+        links:
+            - db
+    # ---
+    init:
+        init: true
+    # ---
+    isolation:
+        isolation: hyperv
+    # ---
+    logging:
+        logging:
+            driver: syslog
+            options:
+                syslog-address: "tcp://"
+    # ---
+    read_only:
+        read_only: true
+    # ---
+    shm_size:
+        shm_size: 64M
+    # ---
+    stop_grace_period:
+        stop_grace_period: 1m30s
+    # ---
+    storage_opt:
+        storage_opt:
+            size: 20G
+    # ---
+    user:
+        user: 1000:1000

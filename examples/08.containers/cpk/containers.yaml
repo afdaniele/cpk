@@ -1,0 +1,6 @@
+schema: "1.0"
+containers:
+    default: {}
+    development:
+        volumes:
+            - ./:${CPK_PROJECT_PATH}
