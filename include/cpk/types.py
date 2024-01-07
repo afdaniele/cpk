@@ -13,6 +13,7 @@ from shutil import rmtree
 from tempfile import TemporaryDirectory
 from typing import List, Dict, Optional, Union, Type, Iterator, Any, Tuple, ContextManager
 
+from dacite import from_dict, Config
 from dockertown import Image, DockerClient
 from dockertown.components.container.cli_wrapper import ValidPortMapping, Container, ValidContainer
 from dockertown.components.image.cli_wrapper import ValidImage
@@ -457,7 +458,7 @@ class CPKContainerConfiguration:
     def parse(cls, data: dict) -> 'CPKContainerConfiguration':
         data = copy.copy(data)
         extends: List[str] = data.pop("__extends__", [])
-        service = Service(**data)
+        service: Service = from_dict(Service, data, config=Config(cast=[Enum]))
         return CPKContainerConfiguration(
             _raw=data,
             service=service,

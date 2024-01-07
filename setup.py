@@ -76,6 +76,7 @@ setup(
     install_requires=[
         'requests',
         'pytimeparse',
+        'dacite',
         'jsonschema',
         'termcolor',
         'pyyaml',

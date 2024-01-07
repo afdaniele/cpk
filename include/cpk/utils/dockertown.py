@@ -6,39 +6,33 @@ from cpk.models.docker.compose import Service, Volumes, Ports, Cgroup
 
 from pytimeparse.timeparse import timeparse
 
-# unroot pydantic model recursively
-unroot = lambda v: unroot(v.__root__) if hasattr(v, "__root__") else v
 # parse duration strings
 duration = lambda s: timeparse(s) if isinstance(s, str) else s
 
 # dict to list of key-value pairs
-dict2list = lambda d: [f"{k}={v}" for k, v in unroot(d).items()]
+dict2list = lambda d: [f"{k}={v}" for k, v in d.items()]
 # list of key-value pairs to dict
-list2dict = lambda t: dict([t.split("=", maxsplit=1) for t in unroot(t)])
+list2dict = lambda t: dict([t.split("=", maxsplit=1) for t in t])
 # dict to list of key-value tuples
-dict2ltuple = lambda d: [(k, v) for k, v in unroot(d).items()]
+dict2ltuple = lambda d: [(k, v) for k, v in d.items()]
 
 # list or dict to list of key-value pairs
-listdict2list = lambda ld: ld if isinstance(unroot(ld), list) else dict2list(ld)
+listdict2list = lambda ld: ld if isinstance(ld, list) else dict2list(ld)
 
 # list or dict to list of key-value tuples
-listdict2ltuple = lambda ld: ld if isinstance(unroot(ld), list) else dict2ltuple(ld)
+listdict2ltuple = lambda ld: ld if isinstance(ld, list) else dict2ltuple(ld)
 
 # list or dict to dict
-listdict2dict = lambda ld: ld if isinstance(unroot(ld), dict) else list2dict(ld)
+listdict2dict = lambda ld: ld if isinstance(ld, dict) else list2dict(ld)
 
 # string or list to list
-strlist2list = lambda sl: sl if isinstance(unroot(sl), list) else [unroot(sl)]
+strlist2list = lambda sl: sl if isinstance(sl, list) else [sl]
 
 # string or list to string
-strlist2str = lambda sl: sl if isinstance(unroot(sl), str) else " ".join(unroot(sl))
+strlist2str = lambda sl: sl if isinstance(sl, str) else " ".join(sl)
 
-# passthrough function with unrooting
-passthrough = lambda v: unroot(v)
-
-# pack / unpack key-value pairs
-key0value = lambda k, v: f"{k}={v}"
-key_value = lambda s: s.split("=", maxsplit=1)
+# passthrough function with
+passthrough = lambda v: v
 
 
 # mapping from docker-compose to dockertown
@@ -54,11 +48,8 @@ mapping: Dict[str, Tuple[str, Callable[[Any], Any]] | List[Tuple[str, Callable[[
     "dns":              ("dns", passthrough),
     "dns_search":       ("dns_search", passthrough),
     "domainname":       ("domainname", passthrough),
-    "entrypoint":       ("entrypoint",
-                         lambda e: unroot(e) if isinstance(unroot(e), str) else " ".join(unroot(e))),
-    "environment":      ("envs",
-                         lambda env: dict([key_value(e) for e in env.__root__])
-                         if isinstance(env.__root__, list) else env.__root__),
+    "entrypoint":       ("entrypoint", strlist2str),
+    "environment":      ("envs", listdict2dict),
     "env_file":         ("env_files", passthrough),
     "expose":           ("expose", passthrough),
     "healthcheck":      [

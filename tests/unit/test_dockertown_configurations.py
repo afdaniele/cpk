@@ -454,6 +454,5 @@ class TestContainersProject(unittest.TestCase):
         self.assertEqual(cfg1, cfg2)
 
 
-
 if __name__ == '__main__':
     unittest.main()
