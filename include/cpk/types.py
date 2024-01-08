@@ -14,20 +14,19 @@ from tempfile import TemporaryDirectory
 from typing import List, Dict, Optional, Union, Type, Iterator, Any, Tuple, ContextManager
 
 from dacite import from_dict, Config
-from dockertown import Image, DockerClient
-from dockertown.components.container.cli_wrapper import ValidPortMapping, Container, ValidContainer
-from dockertown.components.image.cli_wrapper import ValidImage
-from dockertown.components.network.cli_wrapper import ValidNetwork
-from dockertown.components.volume.cli_wrapper import VolumeDefinition
-from dockertown.utils import ValidPath
 from mergedeep import merge, Strategy
 
 import cpk
 from cpk.utils.misc import assert_canonical_arch
+from dockertown import Image, DockerClient
+from dockertown.components.container.cli_wrapper import ValidPortMapping, Container, ValidContainer
+from dockertown.components.image.cli_wrapper import ValidImage
+from dockertown.components.network.cli_wrapper import ValidNetwork
+from dockertown.utils import ValidPath
 from .constants import CANONICAL_ARCH, DEFAULT_DOCKER_REGISTRY, DEFAULT_DOCKER_TAG, \
     DEFAULT_DOCKER_ORGANIZATION, DEFAULT_DOCKER_REGISTRY_PORT
 from .exceptions import \
-    CPKException
+    CPKException, CPKProjectConflictException
 from .models.docker.compose import Service, Volumes
 from .utils.dockertown import populate_dockertown_configuration_from_docker_compose_service
 from .utils.semver import SemanticVersion
@@ -36,6 +35,7 @@ Arguments = List[str]
 CPKProjectGenericLayer = dict
 EventName = str
 NOTSET = object
+BindMountDefinition = Union[Tuple[str, str], Tuple[str, str, str]]
 
 
 @dataclasses.dataclass
@@ -268,7 +268,7 @@ class ManagedNamedVolume:
 
 
 @dataclasses.dataclass
-class DockertownContainerConfiguration(ContextManager['DockertownContainerConfiguration']):
+class DockertownContainerConfiguration:
     image: Optional[ValidImage] = None
     command: List[str] = dataclasses.field(default_factory=list)
     add_hosts: List[Tuple[str, str]] = dataclasses.field(default_factory=list)
@@ -361,15 +361,46 @@ class DockertownContainerConfiguration(ContextManager['DockertownContainerConfig
     user: Optional[str] = None
     userns: Optional[str] = None
     uts: Optional[str] = None
-    volumes: Optional[List[VolumeDefinition]] = dataclasses.field(default_factory=list)
+    volumes: List[BindMountDefinition] = dataclasses.field(default_factory=list)
     volume_driver: Optional[str] = None
     volumes_from: List[ValidContainer] = dataclasses.field(default_factory=list)
     workdir: Optional[ValidPath] = None
+    x_passthrough_args: List[str] = dataclasses.field(default_factory=list)
 
-    # temporary data
-    _temporary: dict = dataclasses.field(init=False, default_factory=dict)
-    _named_volumes: Dict[str, ManagedNamedVolume] = dataclasses.field(init=False, default_factory=list)
+    # auxiliary data
+    _named_volumes: Dict[str, ManagedNamedVolume] = dataclasses.field(init=False, default_factory=dict)
     _deployment_dir: str = dataclasses.field(init=False, default=None)
+
+    # managed data (things that are created and destroyed by this class)
+    _managed: dict = dataclasses.field(init=False, default_factory=dict)
+
+    @dataclasses.dataclass
+    class Context(ContextManager[dict]):
+        _project: 'cpk.CPKProject'
+        _config: 'DockertownContainerConfiguration'
+
+        _stack: Optional[ExitStack] = dataclasses.field(init=False, default=None)
+
+        def __enter__(self) -> dict:
+            if self._stack is not None:
+                raise ValueError("You cannot enter a container configuration twice.")
+            self._stack = ExitStack()
+            # make temporary volumes
+            self._config._managed["mounts"] = []
+            for volume in self._config._named_volumes.values():
+                tmpdir: TemporaryDirectory = self._stack.enter_context(
+                    volume.instantiate(self._config._deployment_dir))
+                self._config._managed["mounts"].append([tmpdir.name, volume.volume.target])
+            # ---
+            return self._config.compile(self._project)
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            if self._stack is None:
+                return
+            self._stack.__exit__(exc_type, exc_val, exc_tb)
+            # clear
+            self._config._managed["mounts"] = []
+            self._stack = None
 
     def set(self, key: str, value: Any):
         if not hasattr(self, key):
@@ -386,7 +417,7 @@ class DockertownContainerConfiguration(ContextManager['DockertownContainerConfig
     def add_named_volume(self, name: str, volume: Volumes):
         self._named_volumes[name] = ManagedNamedVolume(name, volume)
 
-    def minimal_configuration(self) -> dict:
+    def compile(self, project: 'cpk.CPKProject') -> dict:
         cfg: dict = {}
         for field in dataclasses.fields(self):
             # exclude - private fields
@@ -400,20 +431,51 @@ class DockertownContainerConfiguration(ContextManager['DockertownContainerConfig
                 continue
             # ---
             cfg[field.name] = self.get(field.name)
+        # TODO: add named volumes
+        # convert relative paths in volumes to absolute paths
+        abs = lambda p: os.path.abspath(p if os.path.isabs(p) else os.path.join(project.path, p))
+        cfg["volumes"] = [(abs(v[0]), *v[1:]) for v in cfg.get("volumes", [])]
+        # ---
         return cfg
 
-    def __enter__(self) -> dict:
-        self._temporary["mounts"] = []
-        with ExitStack() as stack:
-            # make temporary volumes
-            for volume in self._named_volumes.values():
-                tmpdir: TemporaryDirectory = stack.enter_context(volume.instantiate(self._deployment_dir))
-                self._temporary["mounts"].append([tmpdir.name, volume.volume.target])
-            # ---
-            yield dataclasses.asdict(self)
+    def for_project(self, project: 'cpk.CPKProject') -> 'DockertownContainerConfiguration.Context':
+        return DockertownContainerConfiguration.Context(_project=project, _config=self)
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
+    def merge(self, config: 'DockertownContainerConfiguration', project: 'cpk.CPKProject',
+              only: List[str] = None, exclude: List[str] = None):
+        for field in dataclasses.fields(self):
+            # exclude - private fields
+            if not field.init:
+                continue
+            # exclude specific fields
+            if only is not None and field.name not in only:
+                continue
+            if exclude is not None and field.name in exclude:
+                continue
+            # volumes are treated separately
+            if field.name == "volumes":
+                continue
+            # merge
+            ours: Any = self.get(field.name)
+            theirs: Any = config.get(field.name)
+            # merge lists and dicts
+            if isinstance(ours, list):
+                ours.extend(theirs)
+            if isinstance(ours, dict):
+                ours.update(theirs)
+            # replace other fields
+            if theirs is not None:
+                self.set(field.name, theirs)
+        # convert relative paths in volumes to absolute paths
+        abs = lambda p: os.path.abspath(p if os.path.isabs(p) else os.path.join(project.path, p))
+        new_volumes: List[BindMountDefinition] = [(abs(v[0]), *v[1:]) for v in config.volumes]
+        self.volumes += new_volumes
+        # named volumes are merged as well as long as they are not already defined
+        for name, volume in config._named_volumes.items():
+            if name in self._named_volumes:
+                raise CPKProjectConflictException(f"Some of the projects you are mounting reuse the name "
+                                                  f"'{name}' for a named volume. This is not allowed.")
+            self._named_volumes[name] = volume
 
     @classmethod
     def from_service(cls, service: Service) -> 'DockertownContainerConfiguration':
@@ -439,20 +501,6 @@ class CPKContainerConfiguration:
 
     def as_dockertown_configuration(self) -> DockertownContainerConfiguration:
         return DockertownContainerConfiguration.from_service(self.service)
-
-    @contextmanager
-    def container(self, project: 'cpk.CPKProject', machine: 'CPKMachine', **kwargs) -> Container:
-        image: str = project.docker.image.name(arch=machine.get_architecture()).compile()
-        # ---
-        with DockertownContainerConfiguration.from_service(self.service) as config:
-            container: Container = machine.get_client().container.run(
-                image,
-                **merge(config, kwargs, strategy=Strategy.ADDITIVE)
-            )
-            try:
-                yield container
-            finally:
-                pass
 
     @classmethod
     def parse(cls, data: dict) -> 'CPKContainerConfiguration':
@@ -482,6 +530,11 @@ class CPKProjectContainersLayer(CPKProjectLayer):
     _containers: Dict[str, 'CPKContainerConfiguration'] = \
         dataclasses.field(default_factory=dict)
 
+    def __post_init__(self):
+        # make default container configuration if it does not exist
+        if "default" not in self._containers:
+            self._containers["default"] = CPKContainerConfiguration()
+
     def has(self, name: str) -> bool:
         return name in self._containers
 
@@ -493,6 +546,10 @@ class CPKProjectContainersLayer(CPKProjectLayer):
     @property
     def all(self) -> Iterator[Tuple[str, CPKContainerConfiguration]]:
         return self._containers.items().__iter__()
+
+    @property
+    def keys(self) -> Iterator[str]:
+        return self._containers.keys().__iter__()
 
     @classmethod
     def parse(cls, data: dict) -> 'CPKProjectContainersLayer':
@@ -835,10 +892,29 @@ class CPKProjectDocker:
     def image(self) -> DockerImage:
         return DockerImage(_project=self._project)
 
+    def run(self, machine: 'CPKMachine', configuration: DockertownContainerConfiguration) \
+            -> Union[str, Container]:
+        cfg: dict = configuration.compile(self._project)
+        # add image if needed
+        if "image" not in cfg:
+            cfg["image"] = self.image.name(arch=machine.get_architecture()).compile()
+        # run container
+        return machine.get_client().container.run(**cfg)
 
-class CPKFileMappingTrigger(Enum):
-    DEFAULT = "default"
-    RUN_MOUNT = "run:mount"
+    @contextmanager
+    def container(self, machine: 'CPKMachine', configuration: DockertownContainerConfiguration) -> \
+            Union[str, Container]:
+        # ---
+        with configuration.for_project(self._project) as cfg:
+            # add image if needed
+            if "image" not in cfg:
+                cfg["image"] = self.image.name(arch=machine.get_architecture()).compile()
+            # run container
+            result: Union[str, Container] = machine.get_client().container.run(**cfg)
+            try:
+                yield result
+            finally:
+                pass
 
 
 @dataclasses.dataclass

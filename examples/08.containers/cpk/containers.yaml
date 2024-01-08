@@ -3,4 +3,4 @@ containers:
     default: {}
     development:
         volumes:
-            - ./:${CPK_PROJECT_PATH}
+            - ./:/development

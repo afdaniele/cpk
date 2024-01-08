@@ -254,7 +254,7 @@ TODO:          - NOT SUPPORTED                     uts: Optional[str] = None,
                     ))
                 else:
                     # bind volume
-                    cfg.mounts.append([source, parts[1]])
+                    cfg.volumes.append((source, parts[1]))
             elif len(parts) == 3:
                 source = parts[0]
                 if is_named_volume(source):
@@ -267,13 +267,13 @@ TODO:          - NOT SUPPORTED                     uts: Optional[str] = None,
                     ))
                 else:
                     # bind volume
-                    cfg.mounts.append([source, parts[1], parts[2]])
+                    cfg.volumes.append((source, parts[1], parts[2]))
         else:
             if volume.type == "bind":
                 extras = []
                 if volume.read_only:
                     extras.append("ro")
-                cfg.mounts.append([volume.source, volume.target] + extras)
+                cfg.volumes.append((volume.source, volume.target, *extras))
             else:
                 # named volume
                 name: str = volume.source

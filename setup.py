@@ -83,7 +83,7 @@ setup(
         'sshconf',
         'cryptography',
         'questionary',
-        'dockertown==0.2.3',
+        'dockertown==0.2.4',
         'mergedeep'
     ],
     scripts=[

@@ -50,15 +50,6 @@ class InvalidCPKTemplate(CPKException):
             f"Found an invalid CPK template. Reason: {reason}" if reason else "")
 
 
-class InvalidCPKTemplateFile(CPKException):
-
-    def __init__(self, path: str, reason: Union[str, None] = None):
-        super(InvalidCPKTemplateFile, self).__init__(
-            f"The path `{path}` contains an invalid CPK template file." + (
-                f" Reason: {reason}" if reason else ""
-            ))
-
-
 class CPKTemplateSchemaNotSupported(CPKException):
 
     def __init__(self, schema: str):
@@ -72,6 +63,12 @@ class CPKMissingResourceException(CPKException):
     def __init__(self, resource: str, explanation: str = None):
         exp = "" if explanation is None else f"{explanation}\n"
         super(CPKMissingResourceException, self).__init__(f"{exp}Missing resource: {resource}")
+
+
+class CPKProjectConflictException(CPKException):
+
+    def __init__(self, reason: Union[str, BaseException]):
+        super(CPKProjectConflictException, self).__init__(f"A conflict was detected. {str(reason)}")
 
 
 class CPKProjectBuildException(CPKException):
