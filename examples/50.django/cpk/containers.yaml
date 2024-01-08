@@ -1,0 +1,6 @@
+schema: "1.0"
+containers:
+    default:
+        volumes:
+            - ./:/code/src/django
+        network_mode: host

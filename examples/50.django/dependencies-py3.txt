@@ -1,1 +1,3 @@
 # LIST YOUR PYTHON3 PACKAGES HERE
+
+django==5.0.1
