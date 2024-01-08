@@ -2,12 +2,14 @@ import glob
 import json
 import os
 from pathlib import Path
-from typing import Dict, Union, List, Optional
+from typing import Dict, Union, List, Optional, cast
 
 import jsonschema
+import mergedeep
 import requests
 import yaml
 from jsonschema.validators import Draft202012Validator
+from mergedeep import merge
 from referencing import Registry
 
 import cpk
@@ -291,6 +293,9 @@ class CPKProject:
                 layer_content: str = fin.read()
             # parse layer content
             layer: dict = yaml.safe_load(layer_content)
+            # check if this is an enumerated layer
+            if "." in layer_name:
+                layer_name, _ = layer_name.split(".", maxsplit=1)
             # make sure the `schema` field is there
             if 'schema' not in layer:
                 raise InvalidCPKProjectLayerFile(path, "Missing field: `schema`")
@@ -309,6 +314,9 @@ class CPKProject:
                     validator.validate(layer)
                 except jsonschema.exceptions.ValidationError as e:
                     raise InvalidCPKProjectLayerFile(path, str(e))
+            # merge with other enumerated layers with the same name
+            if layer_name in layers:
+                layer = cast(dict, merge(layer, layers[layer_name], strategy=mergedeep.Strategy.ADDITIVE))
             # add layer to list
             layers[layer_name] = layer
         return layers
