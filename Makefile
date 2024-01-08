@@ -1,6 +1,7 @@
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 PART=patch
 PROJECT_NAME=cpk
+TEST=*
 
 all:
 
@@ -52,7 +53,8 @@ test-unit:
 			-m unittest discover \
 			--verbose \
 			-s "${ROOT_DIR}/tests/unit" \
-			-p "test_*.py"
+			-p "test_*.py" \
+			-k "${TEST}"
 
 test-internal:
 	@echo "Running internal units tests:"; echo ""

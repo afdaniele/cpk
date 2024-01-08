@@ -1,0 +1,8 @@
+schema: "1.0"
+name: "enumerated-layers"
+organization: "cpk-examples"
+description: "Example of a CPK project with enumerated layers"
+maintainer:
+    name: "John Doe"
+    email: "cpk@example.com"
+version: 0.0.0

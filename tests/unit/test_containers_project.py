@@ -2,10 +2,10 @@ import os
 import unittest
 
 import yaml
+from mergedeep import merge, Strategy
 
 from cpk import CPKProject
-from cpk.types import CPKProjectSelfLayer, CPKProjectTemplateLayer, CPKProjectFormatLayer, \
-    CPKProjectBaseLayer, CPKProjectStructureLayer, CPKProjectContainersLayer, CPKContainerConfiguration
+from cpk.types import CPKProjectContainersLayer, CPKContainerConfiguration
 
 TEST_PROJECTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets", "projects"))
 DEFAULT_ARCH: str = "amd64"
@@ -44,6 +44,14 @@ class TestContainersProject(unittest.TestCase):
                 ]
             }
         ))
+
+    def test_layer_containers_enumerated_0(self):
+        project: CPKProject = self.get_project("enumerated-layers")
+        layer: CPKProjectContainersLayer = project.layers.containers
+        layer0_raw: dict = self.get_project_layer_raw("enumerated-layers", "containers.template")
+        layer1_raw: dict = self.get_project_layer_raw("enumerated-layers", "containers.this")
+        layer_raw = merge(layer1_raw, layer0_raw, strategy=Strategy.ADDITIVE)
+        self.assertEqual(layer.as_dict(), layer_raw)
 
 
 if __name__ == '__main__':

@@ -37,8 +37,8 @@ class TestContainersProject(unittest.TestCase):
         # ---
         cfg1: DockertownContainerConfiguration = layer.get("development").as_dockertown_configuration()
         cfg2: DockertownContainerConfiguration = DockertownContainerConfiguration(
-            mounts=[
-                ["./", "${CPK_PROJECT_PATH}"]
+            volumes=[
+                ("./", "${CPK_PROJECT_PATH}")
             ]
         )
         self.assertEqual(cfg1, cfg2)
